@@ -1,9 +1,9 @@
 package lt.setkus.pliuskis.core.network
 
-import lt.setkus.core.BuildConfig.SERVICE_BASE_URL
-import lt.setkus.core.BuildConfig.API_KEY
-import lt.setkus.core.BuildConfig.HOST_PATTERN
-import lt.setkus.core.BuildConfig.PIN
+//import lt.setkus.core.BuildConfig.SERVICE_BASE_URL
+//import lt.setkus.core.BuildConfig.API_KEY
+//import lt.setkus.core.BuildConfig.HOST_PATTERN
+//import lt.setkus.core.BuildConfig.PIN
 import okhttp3.CertificatePinner
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -13,7 +13,7 @@ object HttpService {
 
     private val pinner: CertificatePinner by lazy {
         CertificatePinner.Builder()
-            .add(HOST_PATTERN, PIN)
+//            .add(HOST_PATTERN, PIN)
             .build()
     }
 
@@ -22,7 +22,7 @@ object HttpService {
             .addInterceptor { chain ->
                 val httpUrl = chain.request().url
                     .newBuilder()
-                    .addQueryParameter("apikey", API_KEY)
+//                    .addQueryParameter("apikey", API_KEY)
                     .build()
 
                 val request = chain.request().newBuilder().url(httpUrl).build()
@@ -35,6 +35,6 @@ object HttpService {
 
     fun getRetrofit() = Retrofit.Builder()
         .client(okhttpClient)
-        .baseUrl(SERVICE_BASE_URL)
+//        .baseUrl(SERVICE_BASE_URL)
         .build()
 }

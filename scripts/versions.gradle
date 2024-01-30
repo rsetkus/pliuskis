@@ -1,13 +1,12 @@
 ext {
     // Kotlin
     kotlinVersion = '1.9.22'
-    kotlinCoroutinesVersion = '1.6.4'
+    kotlinCoroutinesVersion = '1.7.3'
     androidExtensionsVersion = '1.12.0'
 
     // Android
     compatVersion = '1.6.1'
     materialVersion = '1.11.0'
-    hiltVersion = '2.40.1'
 
     // Network
     okhttpVersion = '4.9.3'

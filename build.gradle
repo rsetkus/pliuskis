@@ -11,8 +11,7 @@ buildscript {
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:8.1.4'
-        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.6.21'
-        classpath "com.google.dagger:hilt-android-gradle-plugin:${rootProject.ext.hiltVersion}"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${rootProject.ext.kotlinVersion}"
         classpath "org.jlleitschuh.gradle:ktlint-gradle:${rootProject.ext.ktlintPluginVersion}"
         classpath "io.gitlab.arturbosch.detekt:detekt-gradle-plugin:${rootProject.ext.detektVersion}"
         classpath "com.google.android.libraries.mapsplatform.secrets-gradle-plugin:secrets-gradle-plugin:${rootProject.ext.gradleSecretsVersion}"

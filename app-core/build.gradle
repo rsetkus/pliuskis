@@ -1,17 +1,15 @@
 plugins {
     id 'com.android.library'
     id 'kotlin-android'
-    id 'kotlin-kapt'
-    id 'dagger.hilt.android.plugin'
     id 'com.google.android.libraries.mapsplatform.secrets-gradle-plugin'
 }
 
 android {
-    compileSdk 33
+    compileSdk 34
 
     defaultConfig {
         minSdk 23
-        targetSdk 33
+        targetSdk 34
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
@@ -43,10 +41,6 @@ dependencies {
 
     //Tools
     api "com.jakewharton.timber:timber:${rootProject.ext.timberVersion}"
-
-    // Hilt
-    implementation "com.google.dagger:hilt-android:${rootProject.ext.hiltVersion}"
-    kapt "com.google.dagger:hilt-compiler:${rootProject.ext.hiltVersion}"
 
     // Network
     implementation "com.squareup.retrofit2:retrofit:${rootProject.ext.retrofitVersion}"
