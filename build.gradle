@@ -10,8 +10,8 @@ buildscript {
         }
     }
     dependencies {
-        classpath "com.android.tools.build:gradle:7.0.3"
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.6.0"
+        classpath 'com.android.tools.build:gradle:8.1.4'
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.6.21'
         classpath "com.google.dagger:hilt-android-gradle-plugin:${rootProject.ext.hiltVersion}"
         classpath "org.jlleitschuh.gradle:ktlint-gradle:${rootProject.ext.ktlintPluginVersion}"
         classpath "io.gitlab.arturbosch.detekt:detekt-gradle-plugin:${rootProject.ext.detektVersion}"
@@ -27,6 +27,6 @@ subprojects {
     apply from: "../scripts/detekt.gradle"
 }
 
-task clean(type: Delete) {
+tasks.register('clean', Delete) {
     delete rootProject.buildDir
 }

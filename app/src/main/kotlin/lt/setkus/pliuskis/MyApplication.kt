@@ -1,4 +1,4 @@
-package lt.setkus.remplate
+package lt.setkus.pliuskis
 
 import android.app.Application
 import dagger.hilt.android.HiltAndroidApp

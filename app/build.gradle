@@ -6,12 +6,12 @@ plugins {
 }
 
 android {
-    compileSdk 31
+    compileSdk 33
 
     defaultConfig {
-        applicationId "lt.setkus.remplate"
+        applicationId "lt.setkus.pliuskis"
         minSdk 23
-        targetSdk 31
+        targetSdk 33
         versionCode 1
         versionName "1.0"
 
@@ -39,6 +39,7 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+    namespace 'lt.setkus.remplate'
 }
 
 dependencies {

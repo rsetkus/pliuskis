@@ -1,4 +1,4 @@
-package lt.setkus.core.network
+package lt.setkus.pliuskis.core.network
 
 import lt.setkus.core.BuildConfig.SERVICE_BASE_URL
 import lt.setkus.core.BuildConfig.API_KEY
