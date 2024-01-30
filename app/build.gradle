@@ -1,0 +1,65 @@
+plugins {
+    id 'com.android.application'
+    id 'kotlin-android'
+    id 'kotlin-kapt'
+    id 'dagger.hilt.android.plugin'
+}
+
+android {
+    compileSdk 31
+
+    defaultConfig {
+        applicationId "lt.setkus.remplate"
+        minSdk 23
+        targetSdk 31
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+
+    packagingOptions {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+    }
+}
+
+dependencies {
+
+    implementation project(':app-core')
+
+    // Android
+    implementation "androidx.appcompat:appcompat:${rootProject.ext.compatVersion}"
+    implementation "com.google.android.material:material:${rootProject.ext.materialVersion}"
+
+    // Hilt
+    implementation "com.google.dagger:hilt-android:${rootProject.ext.hiltVersion}"
+    kapt "com.google.dagger:hilt-compiler:${rootProject.ext.hiltVersion}"
+
+    // Unit tests
+    testImplementation "junit:junit:${rootProject.ext.junitVersion}"
+    testImplementation "io.mockk:mockk:${rootProject.ext.mockkVersion}"
+    testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:${rootProject.ext.kotlinCoroutinesVersion}"
+    testImplementation "app.cash.turbine:turbine:${rootProject.ext.turbineVersion}"
+
+    // Espresso tests
+    androidTestImplementation "androidx.test.ext:junit:${rootProject.ext.expressoJunitVersion}"
+    androidTestImplementation "androidx.test.espresso:espresso-core:${rootProject.ext.espressoVersion}"
+}

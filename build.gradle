@@ -1,0 +1,32 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+buildscript {
+    apply from: 'scripts/versions.gradle'
+
+    repositories {
+        google()
+        mavenCentral()
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+    }
+    dependencies {
+        classpath "com.android.tools.build:gradle:7.0.3"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.6.0"
+        classpath "com.google.dagger:hilt-android-gradle-plugin:${rootProject.ext.hiltVersion}"
+        classpath "org.jlleitschuh.gradle:ktlint-gradle:${rootProject.ext.ktlintPluginVersion}"
+        classpath "io.gitlab.arturbosch.detekt:detekt-gradle-plugin:${rootProject.ext.detektVersion}"
+        classpath "com.google.android.libraries.mapsplatform.secrets-gradle-plugin:secrets-gradle-plugin:${rootProject.ext.gradleSecretsVersion}"
+
+        // NOTE: Do not place your application dependencies here; they belong
+        // in the individual module build.gradle files
+    }
+}
+
+subprojects {
+    apply from: "../scripts/ktlint.gradle"
+    apply from: "../scripts/detekt.gradle"
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}
