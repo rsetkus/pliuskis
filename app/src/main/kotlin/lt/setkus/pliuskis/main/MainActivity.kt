@@ -47,9 +47,9 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun storeKeyStore() {
-        if (!AWSIotKeystoreHelper.isKeystorePresent(filesDir.absolutePath, "iotkeystore")) {
-            val cert = readAsset("62b1bdc9beb694244e16a091773bd99c742046739ef2361e69e63ac102459d16-certificate.pem.crt")
-            val key = readAsset("62b1bdc9beb694244e16a091773bd99c742046739ef2361e69e63ac102459d16-private.pem.key")
+        if (!AWSIotKeystoreHelper.isKeystorePresent(filesDir.absolutePath, BuildConfig.KEYSTORE_NAME)) {
+            val cert = readAsset(BuildConfig.CERT_PEM)
+            val key = readAsset(BuildConfig.KEY_PEM)
             AWSIotKeystoreHelper.saveCertificateAndPrivateKey(
                 BuildConfig.CERT_ID,
                 cert,
