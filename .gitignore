@@ -11,3 +11,4 @@ local.properties
 /app/build
 *.pem.crt
 *.pem.key
+secrets.properties
