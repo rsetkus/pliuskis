@@ -1,0 +1,2 @@
+### Smart Android dependency versioning
+To manage dependency version on multiple module Android project can be challenging. Gradle version catalogs enable you to add and maintain dependencies and plugins in a scalable way. Using Gradle version catalogs makes managing dependencies and plugins easier when you have multiple modules.
