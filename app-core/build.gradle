@@ -31,6 +31,12 @@ android {
         jvmTarget = '1.8'
     }
     namespace 'lt.setkus.core'
+
+    testOptions {
+        unitTests.all {
+            useJUnitPlatform()
+        }
+    }
 }
 
 dependencies {
@@ -42,6 +48,9 @@ dependencies {
     //Tools
     api "com.jakewharton.timber:timber:${rootProject.ext.timberVersion}"
 
+    // Amazon Iot
+    implementation 'com.amazonaws:aws-android-sdk-iot:2.75.0'
+
     // Network
     implementation "com.squareup.retrofit2:retrofit:${rootProject.ext.retrofitVersion}"
     implementation "com.squareup.retrofit2:converter-gson:${rootProject.ext.retrofitVersion}"
@@ -50,7 +59,8 @@ dependencies {
     implementation "com.google.code.gson:gson:${rootProject.ext.gsonVersion}"
 
     // Unit tests
-    testImplementation "junit:junit:${rootProject.ext.junitVersion}"
+    testImplementation 'io.kotest:kotest-runner-junit5:5.7.2'
+    testImplementation 'io.kotest:kotest-assertions-core:5.7.2'
     testImplementation "io.mockk:mockk:${rootProject.ext.mockkVersion}"
     testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:${rootProject.ext.kotlinCoroutinesVersion}"
     testImplementation "app.cash.turbine:turbine:${rootProject.ext.turbineVersion}"

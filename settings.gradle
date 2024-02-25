@@ -8,3 +8,4 @@ dependencyResolutionManagement {
 rootProject.name = "Pliuskis"
 include ':app'
 include ':app-core'
+include ':app-data'
