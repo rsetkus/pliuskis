@@ -1,3 +1,11 @@
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
@@ -6,6 +14,6 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "Pliuskis"
-include ':app'
-include ':app-core'
-include ':app-data'
+include(":app")
+include(":app-core")
+include(":app-data")
