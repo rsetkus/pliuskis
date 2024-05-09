@@ -30,19 +30,16 @@ dependencies {
 
     //Tools
     api(libs.timber)
-
-    // Amazon Iot
-    implementation(libs.amazonaws.android.iot)
+    api(libs.koin)
 
     // Network
     implementation(libs.gson)
 
     // Unit tests
-    testApi(libs.junit)
-    testApi(libs.mockk)
-    testApi(libs.kotlinx.coroutines.test)
-    testApi(libs.kotest.runner.junit5)
-    testApi(libs.kotest.assertions.core)
-    testApi(libs.turbine)
-    testApi(libs.androidx.arch.core)
+    testImplementation(libs.junit)
+    testImplementation(libs.mockk)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.kotest.runner.junit5)
+    testImplementation(libs.kotest.assertions.core)
+    testImplementation(libs.turbine)
 }

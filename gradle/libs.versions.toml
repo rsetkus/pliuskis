@@ -25,6 +25,7 @@ gson = "2.8.9"
 kotest = "5.7.2"
 turbine = "1.0.0"
 androidxArchCoreTesting = "2.2.0"
+koin = "3.5.6"
 
 [libraries]
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "androidxComposeBom" }
@@ -40,6 +41,7 @@ kotlin-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-c
 timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
 amazonaws-android-iot = { group = "com.amazonaws", name = "aws-android-sdk-iot", version.ref = "amazonwsAndroidIot" }
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
+koin = { group = "io.insert-koin", name = "koin-android", version.ref = "koin"}
 
 # Compose libs
 androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }

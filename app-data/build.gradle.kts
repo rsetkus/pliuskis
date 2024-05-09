@@ -31,4 +31,11 @@ dependencies {
     implementation(project(":app-core"))
 
     implementation(libs.amazonaws.android.iot)
+
+    testImplementation(libs.junit)
+    testImplementation(libs.mockk)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.kotest.runner.junit5)
+    testImplementation(libs.kotest.assertions.core)
+    testImplementation(libs.turbine)
 }
