@@ -1,6 +1,6 @@
 package lt.setkus.pliuskis.data.di
 
-import com.amazonaws.mobileconnectors.iot.AWSIotMqttManager
+import com.hivemq.client.mqtt.mqtt3.Mqtt3RxClient
 import lt.setkus.pliuskis.core.systemstate.SystemStateRequestable
 import lt.setkus.pliuskis.data.BuildConfig
 import lt.setkus.pliuskis.data.IotManager
@@ -12,9 +12,12 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
 val dataModule = module {
+    single<Mqtt3RxClient> {
+        if (BuildConfig.DEBUG) getDebugMqttClient() else getProductionMqttClient(androidContext())
+    }
+
     single<IotManager> {
-        val client = if (BuildConfig.DEBUG) getDebugMqttClient() else getProductionMqttClient(androidContext())
-        HiveMqttClientManager(client)
+        HiveMqttClientManager(get())
     }
 
     factory<SystemStateRequestable> { AwsSystemStateRequest(get()) }
