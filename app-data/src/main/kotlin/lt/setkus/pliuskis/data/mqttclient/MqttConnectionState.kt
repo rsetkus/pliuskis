@@ -1,4 +1,4 @@
-package lt.setkus.pliuskis.data.aws
+package lt.setkus.pliuskis.data.mqttclient
 
 enum class MqttConnectionState {
     CONNECTING,
