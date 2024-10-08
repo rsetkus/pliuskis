@@ -19,25 +19,10 @@ class MainActivity : ComponentActivity() {
         setContent {
             show()
         }
-
-//        val manager = AWSIotMqttManager(
-//            "123",
-//            BuildConfig.AMAZON_IOT_ENDPOINT
-//        )
-//
-//        manager.connect(keyStore) { status: AWSIotMqttClientStatus, throwable: Throwable? ->
-//            Timber.d(status.toString())
-//            if (status == Connected) {
-//                manager.subscribeToTopic("command", QOS0) { topic: String, payloud: ByteArray ->
-//                    Timber.d("message:\n%s", payloud.toString(Charsets.UTF_8))
-//                }
-//            }
-//        }
     }
 
     override fun onResume() {
         super.onResume()
-
         mainViewModel.setIntent(RequestSystemUpdate)
     }
 }
