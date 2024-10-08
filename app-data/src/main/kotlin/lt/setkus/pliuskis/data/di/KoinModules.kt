@@ -12,10 +12,6 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
 val dataModule = module {
-    single<AWSIotMqttManager> {
-        AWSIotMqttManager("pliuskis", BuildConfig.AMAZON_IOT_ENDPOINT)
-    }
-
     single<IotManager> {
         val client = if (BuildConfig.DEBUG) getDebugMqttClient() else getProductionMqttClient(androidContext())
         HiveMqttClientManager(client)
