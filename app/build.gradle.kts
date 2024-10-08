@@ -49,6 +49,7 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     // Optional - Integration with ViewModels
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.compose.runtime.livedata)
 
     // Android
     implementation(libs.androidx.appcompat)
