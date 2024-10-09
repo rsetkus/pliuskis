@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
-abstract class BaseViewModel<in I: UiIntent, S: UiState, E: UiEffect> : ViewModel() {
+abstract class BaseViewModel<in I: UiIntent, S: UiState> : ViewModel() {
 
     private val initialState: S by lazy { setInitialState() }
     abstract fun setInitialState(): S
@@ -18,9 +18,6 @@ abstract class BaseViewModel<in I: UiIntent, S: UiState, E: UiEffect> : ViewMode
     val viewState: LiveData<S> = _viewState
 
     private val _intent: MutableSharedFlow<I> = MutableSharedFlow()
-
-    private val _effect: Channel<E> = Channel()
-    val effect = _effect.receiveAsFlow()
 
     init {
         subscribeToEvents()
@@ -43,10 +40,5 @@ abstract class BaseViewModel<in I: UiIntent, S: UiState, E: UiEffect> : ViewMode
             val newState = it.reducer()
             _viewState.value = newState
         }
-    }
-
-    protected fun setEffect(builder: () -> E) {
-        val effectValue = builder()
-        viewModelScope.launch { _effect.send(effectValue) }
     }
 }
