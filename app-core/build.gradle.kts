@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.pliuskis.android.library)
-    id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
 }
 
 android {
