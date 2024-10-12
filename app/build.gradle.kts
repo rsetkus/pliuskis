@@ -47,6 +47,7 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     // Optional - Integration with activities
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.core.splashscreen)
     // Optional - Integration with ViewModels
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.compose.runtime.livedata)

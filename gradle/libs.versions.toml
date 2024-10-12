@@ -12,6 +12,7 @@ androidxActivity = "1.8.2"
 androidxLifecycle = "2.7.0"
 androidxCompat = "1.6.1"
 androidMaterial = "1.11.0"
+androidxCoreSplashscreen = "1.0.1"
 junit = "4.13.2"
 mockk = "1.12.0"
 kotlinxCoroutines = "1.7.3"
@@ -40,6 +41,7 @@ androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version
 android-material = { group = "com.google.android.material", name = "material", version.ref = "androidMaterial" }
 androidx-tracing-ktx = { group = "androidx.tracing", name = "tracing-ktx", version.ref = "androidxTracing" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "androidxCore" }
+androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "androidxCoreSplashscreen" }
 kotlin-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android" , version.ref = "kotlinxCoroutines"}
 kotlin-coroutines-rx2 = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-rx2" , version.ref = "kotlinxCoroutines"}
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
