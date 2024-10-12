@@ -15,7 +15,8 @@ class CommandGetSystemStateLevelUseCaseTest : FunSpec({
         WHEN use case to get water level is executed,
         THEN should initiate repository to send a signal
     """) {
-        target(Unit).test { awaitComplete() }
-        coVerify(exactly = 1) { mockRepository.requestSystemState() }
+        val param = "param"
+        target(param).test { awaitComplete() }
+        coVerify(exactly = 1) { mockRepository.requestSystemState(param) }
     }
 })

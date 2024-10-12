@@ -36,7 +36,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        mainViewModel.setIntent(RequestSystemUpdate)
+        mainViewModel.setIntent(RequestSystemUpdate("pliuskis"))
     }
 }
 

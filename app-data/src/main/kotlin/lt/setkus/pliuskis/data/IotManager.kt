@@ -6,5 +6,6 @@ import lt.setkus.pliuskis.data.mqttclient.MqttMessageStatus
 
 interface IotManager {
     fun connect(): Flow<MqttConnectionState>
-    fun publishString(message: String, topic: String): Flow<MqttMessageStatus>
+    fun getClientId(): String
+    fun publishString(message: String, topic: String)
 }

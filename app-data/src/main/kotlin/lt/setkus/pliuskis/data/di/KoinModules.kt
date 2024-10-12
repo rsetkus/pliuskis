@@ -1,6 +1,6 @@
 package lt.setkus.pliuskis.data.di
 
-import com.hivemq.client.mqtt.mqtt3.Mqtt3RxClient
+import com.hivemq.client.mqtt.mqtt3.Mqtt3Client
 import lt.setkus.pliuskis.core.systemstate.SystemStateRequestable
 import lt.setkus.pliuskis.data.BuildConfig
 import lt.setkus.pliuskis.data.IotManager
@@ -12,7 +12,7 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
 val dataModule = module {
-    single<Mqtt3RxClient> {
+    single<Mqtt3Client> {
         if (BuildConfig.DEBUG) getDebugMqttClient() else getProductionMqttClient(androidContext())
     }
 

@@ -1,14 +1,15 @@
 package lt.setkus.pliuskis.data.mqttclient
 
-import com.hivemq.client.mqtt.mqtt3.Mqtt3RxClient
+import com.hivemq.client.mqtt.datatypes.MqttQos.AT_LEAST_ONCE
+import com.hivemq.client.mqtt.mqtt3.Mqtt3Client
 import com.hivemq.client.mqtt.mqtt3.message.connect.connack.Mqtt3ConnAck
 import com.hivemq.client.mqtt.mqtt3.message.connect.connack.Mqtt3ConnAckReturnCode
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.rx2.asFlow
+import kotlinx.coroutines.flow.flow
 import lt.setkus.pliuskis.data.IotManager
+import java.nio.charset.Charset
+import kotlin.jvm.optionals.getOrNull
 
-class HiveMqttClientManager(private val client: Mqtt3RxClient) : IotManager {
+class HiveMqttClientManager(private val client: Mqtt3Client) : IotManager {
 
     private fun mapMqtt3ConnAckCode(conn: Mqtt3ConnAck): MqttConnectionState {
         return when (conn.returnCode) {
@@ -17,19 +18,18 @@ class HiveMqttClientManager(private val client: Mqtt3RxClient) : IotManager {
         }
     }
 
-    override fun connect(): Flow<MqttConnectionState> {
-        return client
-            .connect()
-            .toObservable()
-            .map(::mapMqtt3ConnAckCode)
-            .asFlow()
+    override fun connect() = flow {
+        emit(mapMqtt3ConnAckCode(client.toBlocking().connect()))
     }
 
-    override fun publishString(message: String, topic: String) = connect().map {
-        if (it == MqttConnectionState.CONNECTED) {
-            MqttMessageStatus.DELIVERED
-        } else {
-            MqttMessageStatus.FAILED
-        }
+    override fun getClientId() = client.config.clientIdentifier.getOrNull()?.toString() ?: ""
+
+    override fun publishString(message: String, topic: String) {
+        client.toBlocking()
+            .publishWith()
+            .topic(topic)
+            .payload(message.toByteArray(Charset.defaultCharset()))
+            .qos(AT_LEAST_ONCE)
+            .send()
     }
 }

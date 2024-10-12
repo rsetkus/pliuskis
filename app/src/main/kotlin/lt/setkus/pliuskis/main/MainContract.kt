@@ -5,7 +5,7 @@ import lt.setkus.pliuskis.viewmodel.UiState
 
 class MainContract {
     sealed class Intent : UiIntent {
-        data object RequestSystemUpdate : Intent()
+        data class RequestSystemUpdate(val deviceId: String) : Intent()
     }
 
     sealed class MainScreenState {
