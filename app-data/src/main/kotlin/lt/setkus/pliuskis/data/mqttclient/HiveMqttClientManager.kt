@@ -4,7 +4,6 @@ import com.hivemq.client.mqtt.datatypes.MqttQos.AT_LEAST_ONCE
 import com.hivemq.client.mqtt.mqtt3.Mqtt3Client
 import com.hivemq.client.mqtt.mqtt3.message.connect.connack.Mqtt3ConnAck
 import com.hivemq.client.mqtt.mqtt3.message.connect.connack.Mqtt3ConnAckReturnCode
-import kotlinx.coroutines.flow.flow
 import lt.setkus.pliuskis.data.IotManager
 import java.nio.charset.Charset
 import kotlin.jvm.optionals.getOrNull
@@ -18,11 +17,10 @@ class HiveMqttClientManager(private val client: Mqtt3Client) : IotManager {
         }
     }
 
-    override fun connect() = flow {
-        emit(mapMqtt3ConnAckCode(client.toBlocking().connect()))
-    }
+    override fun connect() = mapMqtt3ConnAckCode(client.toBlocking().connect())
 
-    override fun getClientId() = client.config.clientIdentifier.getOrNull()?.toString() ?: ""
+    override fun getClientId() =
+        client.config.clientIdentifier.getOrNull()?.toString() ?: "default-client-id"
 
     override fun publishString(message: String, topic: String) {
         client.toBlocking()

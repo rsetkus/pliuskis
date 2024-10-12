@@ -5,13 +5,12 @@ import lt.setkus.pliuskis.viewmodel.UiState
 
 class MainContract {
     sealed class Intent : UiIntent {
-        data class RequestSystemUpdate(val deviceId: String) : Intent()
+        data object ConnectToBroker : Intent()
     }
 
     sealed class MainScreenState {
-        object Loading : MainScreenState()
-        data class SystemStatus(val status: String): MainScreenState()
-        data class ErrorScreen(val error: String): MainScreenState()
+        data object Loading : MainScreenState()
+        data object Connected : MainScreenState()
     }
 
     data class State(val state: MainScreenState): UiState

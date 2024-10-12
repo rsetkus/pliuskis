@@ -1,33 +1,29 @@
 package lt.setkus.pliuskis.main
 
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
-import lt.setkus.pliuskis.core.systemstate.CommandGetSystemStateLevelUseCase
+import lt.setkus.pliuskis.core.connect.ConnectUseCase
 import lt.setkus.pliuskis.main.MainContract.Intent
-import lt.setkus.pliuskis.main.MainContract.Intent.RequestSystemUpdate
+import lt.setkus.pliuskis.main.MainContract.Intent.ConnectToBroker
+import lt.setkus.pliuskis.main.MainContract.MainScreenState.Connected
 import lt.setkus.pliuskis.main.MainContract.MainScreenState.Loading
-import lt.setkus.pliuskis.main.MainContract.MainScreenState.SystemStatus
 import lt.setkus.pliuskis.main.MainContract.State
 import lt.setkus.pliuskis.viewmodel.BaseViewModel
 import timber.log.Timber
 
 class MainActivityViewModel(
-    private val useCase: CommandGetSystemStateLevelUseCase
+    private val connectUseCase: ConnectUseCase,
 ) : BaseViewModel<Intent, State>() {
 
     override fun setInitialState() = State(Loading)
 
     override fun handleIntents(it: Intent) = when (it) {
-        is RequestSystemUpdate -> handleSystemStatusRequest(it.deviceId)
+        is ConnectToBroker -> handleConnectToBroker()
     }
 
-    private fun handleSystemStatusRequest(deviceId: String) {
+    private fun handleConnectToBroker() {
         viewModelScope.launch {
-            useCase.invoke(deviceId)
-                .onStart { Timber.d("Started") }
-                .catch { e: Throwable -> Timber.d("error: $e") }
+            connectUseCase.invoke(Unit)
                 .collect { result ->
                     result.fold(
                         ifRight = ::renderSystemStatus,
@@ -37,9 +33,9 @@ class MainActivityViewModel(
         }
     }
 
-    private fun renderSystemStatus(_u: Unit) {
+    private fun renderSystemStatus(unit: String) {
         setState {
-            copy(state = SystemStatus("Message delivered"))
+            copy(state = Connected)
         }
     }
 }
