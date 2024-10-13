@@ -28,7 +28,7 @@ secrets {
 
 dependencies {
 
-    implementation(project(":app-core"))
+    implementation(project(":core:domain"))
 
     implementation(libs.amazonaws.android.iot)
     implementation(libs.hiveMqClient)

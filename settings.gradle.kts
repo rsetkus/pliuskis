@@ -16,5 +16,6 @@ dependencyResolutionManagement {
 }
 rootProject.name = "Pliuskis"
 include(":app")
-include(":app-core")
-include(":app-data")
+include(":core:data")
+include(":core:domain")
+include(":core:designsystem")

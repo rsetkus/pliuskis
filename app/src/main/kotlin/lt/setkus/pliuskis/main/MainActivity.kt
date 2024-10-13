@@ -9,9 +9,11 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.launch
+import lt.setkus.pliuskis.core.designsystem.theme.PliuskisTheme
 import lt.setkus.pliuskis.main.MainContract.Intent.ConnectToBroker
 import lt.setkus.pliuskis.main.MainContract.MainScreenState.Connected
 import lt.setkus.pliuskis.main.MainContract.MainScreenState.Loading
+import lt.setkus.pliuskis.ui.PliuskisApp
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class MainActivity : ComponentActivity() {
@@ -37,7 +39,9 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-//            show(mainViewModel)
+            PliuskisTheme {
+                PliuskisApp()
+            }
         }
     }
 
