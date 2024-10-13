@@ -32,7 +32,6 @@ dependencies {
 
     implementation(libs.amazonaws.android.iot)
     implementation(libs.hiveMqClient)
-    implementation(libs.kotlin.coroutines.rx2)
 
     testImplementation(libs.junit)
     testImplementation(libs.mockk)

@@ -48,5 +48,9 @@ gradlePlugin {
             id = "pliuskis.android.library.compose"
             implementationClass = "AndroidLibraryComposeConventionPlugin"
         }
+        register("androidFeature") {
+            id = "pliuskis.android.feature"
+            implementationClass = "AndroidFeatureConventionPlugin"
+        }
     }
 }

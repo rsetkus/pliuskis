@@ -10,6 +10,7 @@ androidxComposeCompiler = "1.5.10"
 androidxComposeBom = "2024.01.00"
 androidxActivity = "1.8.2"
 androidxLifecycle = "2.7.0"
+androidxNavigation = "2.7.4"
 androidxCompat = "1.6.1"
 androidMaterial = "1.11.0"
 androidxCoreSplashscreen = "1.0.1"
@@ -35,21 +36,19 @@ kotlinVersion = "1.9.0"
 [libraries]
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "androidxComposeBom" }
 android-desugarJdkLibs = { group = "com.android.tools", name = "desugar_jdk_libs", version.ref = "androidDesugarJdkLibs" }
-androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "androidxActivity"}
 androidx-lifecycle-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "androidxLifecycle" }
-androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "androidxLifecycle" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "androidxCompat" }
 android-material = { group = "com.google.android.material", name = "material", version.ref = "androidMaterial" }
 androidx-tracing-ktx = { group = "androidx.tracing", name = "tracing-ktx", version.ref = "androidxTracing" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "androidxCore" }
 androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "androidxCoreSplashscreen" }
 kotlin-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android" , version.ref = "kotlinxCoroutines"}
-kotlin-coroutines-rx2 = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-rx2" , version.ref = "kotlinxCoroutines"}
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
 amazonaws-android-iot = { group = "com.amazonaws", name = "aws-android-sdk-iot", version.ref = "amazonwsAndroidIot" }
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 koin = { group = "io.insert-koin", name = "koin-android", version.ref = "koin" }
+koin-compose = { group = "io.insert-koin", name = "koin-androidx-compose",  version.ref = "koin" }
 hiveMqClient = { group = "com.hivemq", name = "hivemq-mqtt-client", version.ref = "hiveMqClient" }
 arrowCore = { group = "io.arrow-kt", name = "arrow-core", version.ref = "arrow" }
 
@@ -60,7 +59,11 @@ androidx-compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graph
 androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
+androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "androidxNavigation" }
 androidx-compose-runtime-livedata = { group = "androidx.compose.runtime", name = "runtime-livedata"}
+androidx-lifecycle-runtimeCompose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "androidxLifecycle" }
+androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "androidxActivity"}
+androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "androidxLifecycle" }
 
 # Tests
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -95,3 +98,4 @@ pliuskis-android-application-compose = { id = "pliuskis.android.application.comp
 pliuskis-android-application = { id = "pliuskis.android.application", version = "unspecified"}
 pliuskis-android-library = { id = "pliuskis.android.library", version = "unspecified"}
 pliuskis-android-library-compose = { id = "pliuskis.android.library.compose", version = "unspecified" }
+pliuskis-android-feature = { id = "pliuskis.android.feature", version = "unspecified" }

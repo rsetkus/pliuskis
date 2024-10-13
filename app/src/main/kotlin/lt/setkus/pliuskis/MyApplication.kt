@@ -3,6 +3,7 @@ package lt.setkus.pliuskis
 import android.app.Application
 import lt.setkus.pliuskis.core.di.coreModule
 import lt.setkus.pliuskis.data.di.dataModule
+import lt.setkus.pliuskis.feature.devices.devicesModule
 import lt.setkus.pliuskis.main.mainModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
@@ -19,7 +20,7 @@ class MyApplication : Application() {
         startKoin {
             androidLogger()
             androidContext(this@MyApplication)
-            modules(dataModule, coreModule, mainModule)
+            modules(dataModule, coreModule, mainModule, devicesModule)
         }
     }
 }

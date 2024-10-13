@@ -32,15 +32,17 @@ android {
 }
 
 dependencies {
+    implementation(projects.feature.devices)
 
-    implementation(project(":core:domain"))
-    implementation(project(":core:data"))
-    implementation(project(":core:designsystem"))
+    implementation(projects.core.domain)
+    implementation(projects.core.data)
+    implementation(projects.core.designsystem)
 
     implementation(libs.androidx.lifecycle.ktx)
 
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
+    implementation(libs.androidx.navigation.compose)
 
     implementation(libs.androidx.compose.material3)
     // Android Studio Preview support
