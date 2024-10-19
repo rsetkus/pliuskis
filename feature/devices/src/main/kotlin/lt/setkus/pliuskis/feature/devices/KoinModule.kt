@@ -4,5 +4,5 @@ import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
 val devicesModule = module {
-    viewModel { DevicesViewModel() }
+    viewModel { DevicesViewModel(get(), get()) }
 }

@@ -1,6 +1,5 @@
 package lt.setkus.pliuskis.feature.devices
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,9 +12,13 @@ import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
+import timber.log.Timber
 
 @Composable
 internal fun DevicesListRoute(
@@ -23,8 +26,12 @@ internal fun DevicesListRoute(
     modifier: Modifier = Modifier,
     viewModel: DevicesViewModel = koinViewModel(),
 ) {
+
+    val devicesListUiState by viewModel.devices.collectAsStateWithLifecycle()
+
     DeviceListScreen(
         onDeviceClick = onDeviceClick,
+        devices = devicesListUiState,
         modifier = modifier
     )
 }
@@ -32,29 +39,42 @@ internal fun DevicesListRoute(
 @Composable
 internal fun DeviceListScreen(
     onDeviceClick: (String) -> Unit,
+    devices: DevicesListScreenState,
     modifier: Modifier = Modifier
 ) {
     val gridState = rememberLazyGridState()
+    val itemsList = remember { mutableListOf<String>() }
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-    ) {
-        LazyVerticalStaggeredGrid(
-            columns = StaggeredGridCells.Adaptive(300.dp)
-        ) {
-            devicesFeed(modifier = modifier)
+    when (devices) {
+        is DevicesListScreenState.Error -> Timber.e("Error: ${devices.error}")
+        DevicesListScreenState.Loading -> Unit
+        is DevicesListScreenState.Success -> {
+            itemsList.add(devices.device)
+            Box(
+                modifier = modifier
+                    .fillMaxSize()
+            ) {
+                LazyVerticalStaggeredGrid(
+                    columns = StaggeredGridCells.Adaptive(300.dp)
+                ) {
+                    devicesFeed(
+                        devices = itemsList,
+                        modifier = modifier
+                    )
+                }
+            }
+
         }
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 fun LazyStaggeredGridScope.devicesFeed(
+    devices: List<String>,
     modifier: Modifier = Modifier
 ) {
     items(
-        items = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "10"),
-        key = { it },
+        items = devices,
+        key = { it.hashCode() },
         contentType = { "deviceList" }
     ) {device ->
         DeviceCard(

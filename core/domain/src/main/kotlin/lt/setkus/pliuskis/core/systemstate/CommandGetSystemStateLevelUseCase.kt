@@ -7,7 +7,9 @@ import lt.setkus.pliuskis.core.BaseUseCase
 class CommandGetSystemStateLevelUseCase(private val repository: SystemStateRequestable) :
     BaseUseCase<String, Unit> {
     override fun invoke(param: String) =
-        flow<Either<Throwable, Unit>> { tryRequestSystemState(param)}
+        flow {
+            emit(tryRequestSystemState(param))
+        }
 
     private fun tryRequestSystemState(param: String): Either<Throwable, Unit> =
         Either.catch {
