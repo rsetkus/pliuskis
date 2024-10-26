@@ -1,3 +1,9 @@
 package lt.setkus.pliuskis.core.systemstate
 
-data class SystemState(val waterLevel: WaterLevel)
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class  SystemState(
+    val humidity: Float,
+    val waterLevel: Float
+)

@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -43,7 +44,7 @@ internal fun DeviceListScreen(
     modifier: Modifier = Modifier
 ) {
     val gridState = rememberLazyGridState()
-    val itemsList = remember { mutableListOf<String>() }
+    val itemsList = remember { mutableListOf<DeviceListItem>() }
 
     when (devices) {
         is DevicesListScreenState.Error -> Timber.e("Error: ${devices.error}")
@@ -59,6 +60,7 @@ internal fun DeviceListScreen(
                 ) {
                     devicesFeed(
                         devices = itemsList,
+                        onDeviceClick,
                         modifier = modifier
                     )
                 }
@@ -69,7 +71,8 @@ internal fun DeviceListScreen(
 }
 
 fun LazyStaggeredGridScope.devicesFeed(
-    devices: List<String>,
+    devices: List<DeviceListItem>,
+    onDeviceClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     items(
@@ -79,24 +82,30 @@ fun LazyStaggeredGridScope.devicesFeed(
     ) {device ->
         DeviceCard(
             device,
+            onDeviceClick,
             modifier = modifier
         )
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun DeviceCard(
-    devices: String = "",
+    device: DeviceListItem,
+    onDeviceClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
+        onClick = { onDeviceClick(device.id) },
         modifier = modifier
     ) {
         Column {
             Box {
                 Column {
                     Row {
-                        Text(text = devices)
+                        Text(
+                            text = device.name
+                        )
                     }
                 }
             }

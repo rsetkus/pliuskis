@@ -8,7 +8,7 @@ import io.mockk.mockk
 class CommandGetSystemStateLevelUseCaseTest : FunSpec({
 
     val mockRepository = mockk<SystemStateRequestable>(relaxed = true)
-    val target = CommandGetSystemStateLevelUseCase(mockRepository)
+    val target = RequestSystemStatelUseCase(mockRepository)
 
     test("""
         GIVEN water level repository,

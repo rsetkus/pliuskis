@@ -33,6 +33,7 @@ android {
 
 dependencies {
     implementation(projects.feature.devices)
+    implementation(projects.feature.control)
 
     implementation(projects.core.domain)
     implementation(projects.core.data)
