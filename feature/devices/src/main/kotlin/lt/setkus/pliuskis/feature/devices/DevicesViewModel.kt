@@ -34,7 +34,7 @@ class DevicesViewModel(
     val devices: StateFlow<DevicesListScreenState> = devicesUse(Unit)
         .map { result ->
             result.fold(
-                ifRight = { Success(DeviceListItem(it.name, it.deviceId)) },
+                ifRight = { Success(DeviceListItem(it.name, it.deviceId, it.timestamp.toString())) },
                 ifLeft = { Error(it) }
             )
         }.stateIn(
