@@ -16,6 +16,8 @@ import lt.setkus.pliuskis.data.mqttclient.getDebugMqttClient
 import lt.setkus.pliuskis.data.mqttclient.getProductionMqttClient
 import lt.setkus.pliuskis.data.systemstate.AwsSystemStateRequest
 import lt.setkus.pliuskis.data.systemstate.SubscribeSystemStatusTopic
+import lt.setkus.pliuskis.data.util.AndroidConnectivityManager
+import lt.setkus.pliuskis.data.util.NetworkConnectivity
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
@@ -27,6 +29,8 @@ val dataModule = module {
     single<IotManager> {
         HiveMqttClientManager(get())
     }
+
+    single<NetworkConnectivity> { AndroidConnectivityManager(androidContext()) }
 
     factory<SystemStateRequestable> { AwsSystemStateRequest(get()) }
     factory<Connectable> { ConnectMqttSource(get()) }
