@@ -25,6 +25,7 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
                 add("testImplementation", kotlin("test"))
                 add("implementation", libs.findLibrary("androidx.tracing.ktx").get())
                 add("implementation", libs.findLibrary("kotlinx.serialization.json").get())
+                add("api", libs.findLibrary("kotlinx.datetime").get())
                 add("implementation", libs.findLibrary("arrowCore").get())
             }
         }
