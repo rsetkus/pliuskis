@@ -4,10 +4,9 @@ import arrow.core.Either
 import kotlinx.coroutines.flow.flow
 import lt.setkus.pliuskis.core.BaseUseCase
 
-class RequestSystemStatelUseCase(
+class RequestSystemStateUseCase(
     private val repository: SystemStateRequestable
-) :
-    BaseUseCase<String, Unit> {
+) : BaseUseCase<String, Unit> {
     override fun invoke(param: String) =
         flow {
             emit(tryRequestSystemState(param))

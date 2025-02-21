@@ -5,17 +5,18 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import lt.setkus.feature.control.ControlUiState.Error
 import lt.setkus.feature.control.ControlUiState.Success
 import lt.setkus.feature.control.navigation.ControlArgs
 import lt.setkus.pliuskis.core.systemstate.GetSystemStatusUseUseCase
-import lt.setkus.pliuskis.core.systemstate.RequestSystemStatelUseCase
+import lt.setkus.pliuskis.core.systemstate.RequestSystemStateUseCase
 
 class ControlViewModel(
     savedStateHandle: SavedStateHandle,
-    systemStatusUseCase: RequestSystemStatelUseCase,
+    systemStatusUseCase: RequestSystemStateUseCase,
     getSystemStatusUseUseCase: GetSystemStatusUseUseCase
 ) : ViewModel() {
 
