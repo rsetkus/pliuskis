@@ -25,7 +25,7 @@ class ControlViewModel(
 
     init {
         systemStatusUseCase(deviceId)
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
+            .stateIn(viewModelScope, SharingStarted.Eagerly, null)
     }
 
     val controlUiState: StateFlow<ControlUiState> = getSystemStatusUseUseCase(deviceId)
