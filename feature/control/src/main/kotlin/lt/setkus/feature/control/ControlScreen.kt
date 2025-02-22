@@ -1,5 +1,7 @@
 package lt.setkus.feature.control
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -19,6 +21,7 @@ internal fun ControlRoute(
         controlUiState = controlUiState,
         onBackClick = onBackClick,
         modifier = modifier,
+        onWaterButtonClick = viewModel::waterPlant
     )
 }
 
@@ -26,6 +29,7 @@ internal fun ControlRoute(
 internal fun ControlScreen(
     controlUiState: ControlUiState,
     onBackClick: () -> Unit,
+    onWaterButtonClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when (controlUiState) {
@@ -33,8 +37,24 @@ internal fun ControlScreen(
             Text(text = "Loading")
         }
         is ControlUiState.Error -> Text(text = "Error")
-        is ControlUiState.Success -> {
-            Text(text = controlUiState.data)
+        is ControlUiState.Success -> ControlDeviceStatus(controlUiState.data)
+    }
+}
+
+@Composable
+internal fun ControlDeviceStatus(
+    data: DeviceStatus,
+    onWaterButtonClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = Modifier
+    ) {
+        Text(text = data.humidity)
+        Text(text = data.waterLevel)
+        Text(text = data.updatedTime)
+        Button(onClick = onWaterButtonClick) {
+            Text(text = "Add water")
         }
     }
 }

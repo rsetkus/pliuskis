@@ -1,7 +1,6 @@
 package lt.setkus.pliuskis.core.devicelist
 
 import kotlinx.datetime.Instant
-import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.serializers.InstantComponentSerializer
 import kotlinx.serialization.Serializable
 
