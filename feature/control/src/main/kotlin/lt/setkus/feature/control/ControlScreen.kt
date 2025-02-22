@@ -37,7 +37,7 @@ internal fun ControlScreen(
             Text(text = "Loading")
         }
         is ControlUiState.Error -> Text(text = "Error")
-        is ControlUiState.Success -> ControlDeviceStatus(controlUiState.data)
+        is ControlUiState.Success -> ControlDeviceStatus(controlUiState.data, onWaterButtonClick)
     }
 }
 
