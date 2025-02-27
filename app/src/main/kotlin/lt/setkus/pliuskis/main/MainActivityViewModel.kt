@@ -1,36 +1,35 @@
 package lt.setkus.pliuskis.main
 
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.conflate
-import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.onErrorReturn
-import kotlinx.coroutines.flow.onStart
-import kotlinx.coroutines.launch
-import lt.setkus.pliuskis.core.systemstate.CommandGetSystemStateLevelUseCase
-import lt.setkus.pliuskis.main.MainContract.Effect
-import lt.setkus.pliuskis.main.MainContract.Intent
-import lt.setkus.pliuskis.main.MainContract.MainScreenState.EmptyScreen
-import lt.setkus.pliuskis.main.MainContract.State
-import lt.setkus.pliuskis.viewmodel.BaseViewModel
-import timber.log.Timber
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import lt.setkus.pliuskis.core.connect.ConnectUseCase
+import lt.setkus.pliuskis.main.MainActivityUiState.Connected
+import lt.setkus.pliuskis.main.MainActivityUiState.Error
+import lt.setkus.pliuskis.main.MainActivityUiState.Loading
 
 class MainActivityViewModel(
-    private val useCase: CommandGetSystemStateLevelUseCase
-) : BaseViewModel<Intent, State, Effect>() {
+    private val connectUseCase: ConnectUseCase,
+) : ViewModel() {
 
-    override fun setInitialState() = State(EmptyScreen)
+    val uiState: StateFlow<MainActivityUiState> = connectUseCase(Unit)
+        .map { either ->
+            either.fold(
+                ifRight = { Connected },
+                ifLeft = { Error }
+            )
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = Loading
+        )
+}
 
-    override fun handleIntents(it: Intent) {
-        viewModelScope.launch {
-            useCase.invoke(Unit)
-                .onStart { Timber.d("Started") }
-                .catch { e: Throwable -> Timber.d("error: $e") }
-                .collect {
-                    Timber.d("Collected: $it")
-                }
-        }
-    }
+sealed interface MainActivityUiState {
+    data object Loading : MainActivityUiState
+    data object Error : MainActivityUiState
+    data object Connected : MainActivityUiState
 }

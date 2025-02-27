@@ -15,6 +15,11 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "Pliuskis"
+
+enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 include(":app")
-include(":app-core")
-include(":app-data")
+include(":core:data")
+include(":core:domain")
+include(":core:designsystem")
+include(":feature:devices")
+include(":feature:control")

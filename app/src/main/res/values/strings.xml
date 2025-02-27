@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Pliuskis</string>
+    <string name="not_network_connected">⚠️ You are not connected to the internet</string>
 </resources>

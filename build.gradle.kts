@@ -6,9 +6,6 @@ plugins {
     alias(libs.plugins.ktlint) apply false
     alias(libs.plugins.detekt) apply false
     alias(libs.plugins.secrets) apply false
-}
-
-subprojects {
-    apply(from = "../scripts/ktlint.gradle")
-    apply(from = "../scripts/detekt.gradle")
+    alias(libs.plugins.kotlin.serialization) apply false
+    alias(libs.plugins.jetbrains.kotlin.android) apply false
 }

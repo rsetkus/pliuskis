@@ -32,14 +32,22 @@ android {
 }
 
 dependencies {
+    implementation(projects.feature.devices)
+    implementation(projects.feature.control)
 
-    implementation(project(":app-core"))
-    implementation(project(":app-data"))
+    implementation(projects.core.domain)
+    implementation(projects.core.data)
+    implementation(projects.core.designsystem)
 
     implementation(libs.androidx.lifecycle.ktx)
 
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.lifecycle.runtimeCompose)
+
+
+    implementation(libs.koin.compose)
 
     implementation(libs.androidx.compose.material3)
     // Android Studio Preview support
@@ -47,8 +55,10 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     // Optional - Integration with activities
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.core.splashscreen)
     // Optional - Integration with ViewModels
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.compose.runtime.livedata)
 
     // Android
     implementation(libs.androidx.appcompat)
