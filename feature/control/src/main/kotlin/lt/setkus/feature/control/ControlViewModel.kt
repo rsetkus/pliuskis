@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.stateIn
 import lt.setkus.feature.control.ControlUiState.Error
 import lt.setkus.feature.control.ControlUiState.Success
 import lt.setkus.feature.control.navigation.ControlArgs
+import lt.setkus.pliuskis.core.command.water.ExecuteWaterCommandUseCase
 import lt.setkus.pliuskis.core.systemstate.GetSystemStatusUseUseCase
 import lt.setkus.pliuskis.core.systemstate.RequestSystemStateUseCase
 import lt.setkus.pliuskis.core.systemstate.SystemState
@@ -18,6 +19,7 @@ class ControlViewModel(
     savedStateHandle: SavedStateHandle,
     systemStatusUseCase: RequestSystemStateUseCase,
     getSystemStatusUseUseCase: GetSystemStatusUseUseCase,
+    private val executeCommandUseCase: ExecuteWaterCommandUseCase,
     mapper: (SystemState) -> DeviceStatus
 ) : ViewModel() {
 
@@ -43,7 +45,7 @@ class ControlViewModel(
         )
 
     fun waterPlant() {
-        TODO("Not yet implemented")
+        executeCommandUseCase(deviceId).stateIn(viewModelScope, SharingStarted.Eagerly, Unit)
     }
 }
 

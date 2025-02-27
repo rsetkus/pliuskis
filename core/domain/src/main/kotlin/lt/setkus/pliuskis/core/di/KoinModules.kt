@@ -1,5 +1,6 @@
 package lt.setkus.pliuskis.core.di
 
+import lt.setkus.pliuskis.core.command.water.ExecuteWaterCommandUseCase
 import lt.setkus.pliuskis.core.connect.ConnectUseCase
 import lt.setkus.pliuskis.core.devicelist.GetDeviceUseCase
 import lt.setkus.pliuskis.core.devicelist.RequestDeviceListUseCase
@@ -13,4 +14,5 @@ val coreModule = module {
     factory { RequestDeviceListUseCase(get()) }
     factory { GetDeviceUseCase(get()) }
     factory { GetSystemStatusUseUseCase(get()) }
+    factory { ExecuteWaterCommandUseCase(get()) }
 }
