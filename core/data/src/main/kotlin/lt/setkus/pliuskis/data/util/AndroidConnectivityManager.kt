@@ -42,8 +42,6 @@ class AndroidConnectivityManager(
 
         manager.registerNetworkCallback(request, callback)
 
-
-
         awaitClose {
             manager.unregisterNetworkCallback(callback)
         }

@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.pliuskis.android.feature)
     alias(libs.plugins.pliuskis.android.library.compose)
+    alias(libs.plugins.pliuskis.android.code.quality)
 }
 
 android {

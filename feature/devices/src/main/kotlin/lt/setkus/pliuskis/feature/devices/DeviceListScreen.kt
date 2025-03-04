@@ -69,7 +69,6 @@ internal fun DeviceListScreen(
                     )
                 }
             }
-
         }
     }
 }
@@ -83,7 +82,7 @@ fun LazyStaggeredGridScope.devicesFeed(
         items = devices,
         key = { it.hashCode() },
         contentType = { "deviceList" }
-    ) {device ->
+    ) { device ->
         DeviceCard(
             device,
             onDeviceClick,

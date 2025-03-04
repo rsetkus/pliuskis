@@ -52,5 +52,9 @@ gradlePlugin {
             id = "pliuskis.android.feature"
             implementationClass = "AndroidFeatureConventionPlugin"
         }
+        register("codeQuality") {
+            id = "pliuskis.code.quality"
+            implementationClass = "CodeQualityConventionPlugin"
+        }
     }
 }

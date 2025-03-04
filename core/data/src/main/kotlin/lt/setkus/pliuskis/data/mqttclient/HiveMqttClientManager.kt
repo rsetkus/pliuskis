@@ -1,7 +1,5 @@
 package lt.setkus.pliuskis.data.mqttclient
 
-import android.os.Build
-import androidx.annotation.RequiresApi
 import com.hivemq.client.mqtt.datatypes.MqttQos.AT_LEAST_ONCE
 import com.hivemq.client.mqtt.mqtt3.Mqtt3Client
 import com.hivemq.client.mqtt.mqtt3.message.connect.connack.Mqtt3ConnAck
@@ -10,7 +8,6 @@ import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.flow.flow
 import lt.setkus.pliuskis.data.IotManager
 import java.nio.charset.Charset
 import kotlin.jvm.optionals.getOrNull

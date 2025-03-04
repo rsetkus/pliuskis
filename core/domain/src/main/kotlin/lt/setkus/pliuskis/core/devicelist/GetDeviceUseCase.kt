@@ -10,7 +10,7 @@ import lt.setkus.pliuskis.core.BaseUseCase
 
 class GetDeviceUseCase(
     private val subrcibable: DeviceSubscribable
-): BaseUseCase<Unit, DeviceDomainModel> {
+) : BaseUseCase<Unit, DeviceDomainModel> {
 
     override fun invoke(deviceId: Unit) = flow<Either<Throwable, DeviceDomainModel>> {
         subrcibable.subcsribeDevice().collect {

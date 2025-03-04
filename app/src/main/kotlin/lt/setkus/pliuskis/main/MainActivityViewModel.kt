@@ -11,6 +11,8 @@ import lt.setkus.pliuskis.main.MainActivityUiState.Connected
 import lt.setkus.pliuskis.main.MainActivityUiState.Error
 import lt.setkus.pliuskis.main.MainActivityUiState.Loading
 
+private const val STOP_TIMEOUT_MILLIS = 5_000L
+
 class MainActivityViewModel(
     private val connectUseCase: ConnectUseCase,
 ) : ViewModel() {
@@ -23,7 +25,7 @@ class MainActivityViewModel(
             )
         }.stateIn(
             scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
+            started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
             initialValue = Loading
         )
 }

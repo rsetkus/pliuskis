@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import lt.setkus.pliuskis.data.util.NetworkConnectivity
 
+private const val STOP_TIMEOUT_MILLIS = 5_000L
+
 @Composable
 fun rememberPliuskisAppState(
     connectivity: NetworkConnectivity,
@@ -38,7 +40,7 @@ class PliuskisAppState(
         .map(Boolean::not)
         .stateIn(
             scope = coroutineScope,
-            started = WhileSubscribed(5_000),
+            started = WhileSubscribed(STOP_TIMEOUT_MILLIS),
             initialValue = false
         )
 }

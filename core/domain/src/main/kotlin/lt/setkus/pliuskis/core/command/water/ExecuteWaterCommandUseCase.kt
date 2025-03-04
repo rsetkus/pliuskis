@@ -1,4 +1,4 @@
-package lt.setkus.pliuskis.core.command.water;
+package lt.setkus.pliuskis.core.command.water
 
 import arrow.core.Either
 import kotlinx.coroutines.flow.flow

@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.pliuskis.android.application.compose)
     alias(libs.plugins.pliuskis.android.application)
+    alias(libs.plugins.pliuskis.android.code.quality)
 }
 
 android {
@@ -45,7 +46,6 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.lifecycle.runtimeCompose)
-
 
     implementation(libs.koin.compose)
 

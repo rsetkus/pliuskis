@@ -15,7 +15,7 @@ fun NavController.navigateDevices(options: NavOptions) = navigate(DEVICES_ROUTE_
 fun NavGraphBuilder.devicesScreen(
     onDeviceClick: (String) -> Unit,
     nestedGraphs: NavGraphBuilder.() -> Unit
-)  {
+) {
     navigation(
         route = DEVICES_ROUTE_PATTERN,
         startDestination = START_DEVICES_ROUTE

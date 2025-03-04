@@ -15,6 +15,8 @@ import lt.setkus.pliuskis.core.systemstate.GetSystemStatusUseUseCase
 import lt.setkus.pliuskis.core.systemstate.RequestSystemStateUseCase
 import lt.setkus.pliuskis.core.systemstate.SystemState
 
+private const val STOP_TIMEOUT_MILLIS = 5_000L
+
 class ControlViewModel(
     savedStateHandle: SavedStateHandle,
     systemStatusUseCase: RequestSystemStateUseCase,
@@ -40,7 +42,7 @@ class ControlViewModel(
         }
         .stateIn(
             scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
+            started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
             initialValue = ControlUiState.Loading
         )
 

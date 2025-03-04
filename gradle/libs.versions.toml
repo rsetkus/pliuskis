@@ -2,7 +2,7 @@
 androidGradlePlugin = "8.1.4"
 androidDesugarJdkLibs = "2.0.4"
 kotlin = "1.9.22"
-detekt = "1.17.0"
+detekt = "1.23.8"
 ktlint = "10.0.0"
 secrets = "2.0.1"
 androidTools = "31.2.0"
@@ -101,3 +101,4 @@ pliuskis-android-application = { id = "pliuskis.android.application", version = 
 pliuskis-android-library = { id = "pliuskis.android.library", version = "unspecified"}
 pliuskis-android-library-compose = { id = "pliuskis.android.library.compose", version = "unspecified" }
 pliuskis-android-feature = { id = "pliuskis.android.feature", version = "unspecified" }
+pliuskis-android-code-quality = { id = "pliuskis.code.quality", version = "unspecified" }

@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.pliuskis.android.library)
     alias(libs.plugins.secrets)
+    alias(libs.plugins.pliuskis.android.code.quality)
 }
 
 android {
