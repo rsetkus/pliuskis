@@ -7,7 +7,7 @@ import lt.setkus.pliuskis.core.BaseUseCase
 
 class ConnectUseCase(
     private val connectSource: Connectable
-): BaseUseCase<Unit, String>  {
+) : BaseUseCase<Unit, String> {
 
     override fun invoke(param: Unit): Flow<Either<Throwable, String>> =
         flow { emit(tryConnect()) }

@@ -8,10 +8,11 @@ import java.io.BufferedInputStream
 import java.security.KeyStore
 import javax.net.ssl.KeyManagerFactory
 
+private const val SERVER_PORT = 1883
 fun getDebugMqttClient() = MqttClient.builder()
     .identifier("android-debug-client")
     .serverHost("10.0.2.2")
-    .serverPort(1883)
+    .serverPort(SERVER_PORT)
     .useMqttVersion3()
     .build()
 

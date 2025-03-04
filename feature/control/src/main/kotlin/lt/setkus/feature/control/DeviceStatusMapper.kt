@@ -44,5 +44,4 @@ class DeviceStatusMapper : (SystemState) -> DeviceStatus {
 
         return "Updated at $formatted."
     }
-
 }

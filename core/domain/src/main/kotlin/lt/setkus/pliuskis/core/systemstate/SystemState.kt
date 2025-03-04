@@ -5,7 +5,7 @@ import kotlinx.datetime.serializers.InstantComponentSerializer
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class  SystemState(
+data class SystemState(
     val humidity: Float,
     val waterLevel: Float,
     @Serializable(with = InstantComponentSerializer::class)

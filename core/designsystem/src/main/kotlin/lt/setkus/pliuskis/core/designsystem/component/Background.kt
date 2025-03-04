@@ -1,3 +1,5 @@
+@file:Suppress("MagicNumber")
+
 package lt.setkus.pliuskis.core.designsystem.component
 
 import androidx.compose.foundation.layout.Box

@@ -14,6 +14,8 @@ import lt.setkus.pliuskis.feature.devices.DevicesListScreenState.Loading
 import lt.setkus.pliuskis.feature.devices.DevicesListScreenState.Success
 import timber.log.Timber
 
+private const val STOP_MILLIS = 5_000L
+
 class DevicesViewModel(
     private val useCase: RequestDeviceListUseCase,
     private val devicesUse: GetDeviceUseCase
@@ -39,7 +41,7 @@ class DevicesViewModel(
             )
         }.stateIn(
             scope = viewModelScope,
-            started = WhileSubscribed(5_000),
+            started = WhileSubscribed(STOP_MILLIS),
             initialValue = Loading
         )
 }
