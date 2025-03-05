@@ -12,6 +12,11 @@ class GetDeviceUseCase(
     private val subrcibable: DeviceSubscribable
 ) : BaseUseCase<Unit, DeviceDomainModel> {
 
+    private val json = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+    }
+
     override fun invoke(deviceId: Unit) = flow<Either<Throwable, DeviceDomainModel>> {
         subrcibable.subcsribeDevice().collect {
             emit(decodeDevice(it).right())
@@ -19,7 +24,7 @@ class GetDeviceUseCase(
     }.catch { emit(it.left()) }
 
     private fun decodeDevice(content: String): DeviceDomainModel =
-        Json.decodeFromString(
+        json.decodeFromString(
             DeviceDomainModel.serializer(),
             content
         )
