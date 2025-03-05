@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import lt.setkus.feature.control.ControlUiState.Error
+import lt.setkus.feature.control.ControlUiState.Error as ControlError
 import lt.setkus.feature.control.ControlUiState.Success
 import lt.setkus.feature.control.navigation.ControlArgs
 import lt.setkus.pliuskis.core.command.water.ExecuteWaterCommandUseCase
@@ -37,7 +37,7 @@ class ControlViewModel(
         .map {
             it.fold(
                 ifRight = { result -> Success(mapper(result)) },
-                ifLeft = { Error }
+                ifLeft = { error -> ControlError(error.message ?: "No message") }
             )
         }
         .stateIn(
@@ -53,6 +53,6 @@ class ControlViewModel(
 
 sealed interface ControlUiState {
     data object Loading : ControlUiState
-    data object Error : ControlUiState
+    data class Error(val message: String) : ControlUiState
     data class Success(val data: DeviceStatus) : ControlUiState
 }
