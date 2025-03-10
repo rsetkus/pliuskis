@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import lt.setkus.pliuskis.core.devicelist.DeviceDomainModel
 import lt.setkus.pliuskis.core.devicelist.GetDeviceUseCase
 import lt.setkus.pliuskis.core.devicelist.RequestDeviceListUseCase
 import lt.setkus.pliuskis.feature.devices.DevicesListScreenState.Error
@@ -17,8 +18,9 @@ import timber.log.Timber
 private const val STOP_MILLIS = 5_000L
 
 class DevicesViewModel(
-    private val useCase: RequestDeviceListUseCase,
-    private val devicesUse: GetDeviceUseCase
+    useCase: RequestDeviceListUseCase,
+    devicesUse: GetDeviceUseCase,
+    mapper: (DeviceDomainModel) -> DeviceListItem
 ) : ViewModel() {
 
     init {
@@ -35,8 +37,9 @@ class DevicesViewModel(
 
     val devices: StateFlow<DevicesListScreenState> = devicesUse(Unit)
         .map { result ->
+            Timber.d(mapper.toString())
             result.fold(
-                ifRight = { Success(DeviceListItem(it.name, it.deviceId, it.timestamp.toString())) },
+                ifRight = { Success(mapper(it)) },
                 ifLeft = { Error(it) }
             )
         }.stateIn(
