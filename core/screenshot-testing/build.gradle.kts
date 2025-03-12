@@ -1,5 +1,5 @@
 plugins {
-    alias(libs.plugins.android.library)
+    alias(libs.plugins.pliuskis.android.library)
     alias(libs.plugins.pliuskis.android.code.quality)
 }
 

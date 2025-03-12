@@ -12,7 +12,7 @@ android {
         versionCode = 1
         versionName = "1.0"
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = "lt.setkus.pliuskis.core.testing.PliuskisTestRunner"
     }
 
     buildTypes {
@@ -22,6 +22,12 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+        }
+    }
+
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
         }
     }
 
@@ -53,6 +59,7 @@ dependencies {
     // Android Studio Preview support
     implementation(libs.androidx.compose.ui.tooling.preview)
     debugImplementation(libs.androidx.compose.ui.tooling)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
     // Optional - Integration with activities
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.core.splashscreen)
@@ -65,6 +72,13 @@ dependencies {
     implementation(libs.android.material)
 
     // Unit tests
+    testImplementation(libs.kotlin.test)
+    testImplementation(projects.core.testing)
+    testImplementation(projects.core.screenshotTesting)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.navigation.testing)
+
+    // Android UI tests
     androidTestImplementation(libs.androidx.compose.ui.test.junit)
     androidTestImplementation(libs.androidx.compose.ui.test.manifest)
 

@@ -1,5 +1,5 @@
 plugins {
-    alias(libs.plugins.android.library)
+    alias(libs.plugins.pliuskis.android.library)
     alias(libs.plugins.pliuskis.android.code.quality)
 }
 
@@ -8,5 +8,8 @@ android {
 }
 
 dependencies {
+    api(libs.kotlinx.coroutines.test)
+
+    implementation(projects.core.data)
     implementation(libs.androidx.test.rules)
 }
