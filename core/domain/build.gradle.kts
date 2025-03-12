@@ -28,7 +28,7 @@ dependencies {
     api(libs.androidx.core.ktx)
     api(libs.kotlin.coroutines.android)
 
-    //Tools
+    // Tools
     api(libs.timber)
     api(libs.koin)
 
