@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="devices_loading">Loading devices...</string>
+    <string name="devices_empty">No devices found. Make sure your device is powered on and connected.</string>
+    <string name="device_online">Online</string>
+    <string name="device_offline">Offline</string>
 </resources>

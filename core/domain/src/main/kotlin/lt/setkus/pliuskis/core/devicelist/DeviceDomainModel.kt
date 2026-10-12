@@ -1,7 +1,5 @@
 package lt.setkus.pliuskis.core.devicelist
 
-import kotlinx.datetime.Instant
-import kotlinx.datetime.serializers.InstantComponentSerializer
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -15,9 +13,7 @@ import kotlinx.serialization.encoding.Encoder
 data class DeviceDomainModel(
     val name: String,
     val deviceId: String,
-    val type: DeviceType,
-    @Serializable(with = InstantComponentSerializer::class)
-    val timestamp: Instant
+    val type: DeviceType
 )
 
 @Serializable(with = DeviceTypeSerializer::class)

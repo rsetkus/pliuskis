@@ -1,7 +1,7 @@
 package lt.setkus.pliuskis.feature.devices
 
 import androidx.annotation.DrawableRes
-import lt.setkus.pliuskis.core.devicelist.DeviceDomainModel
+import lt.setkus.pliuskis.core.devicelist.Device
 import lt.setkus.pliuskis.core.devicelist.DeviceType
 
 data class DeviceListItem(
@@ -9,19 +9,19 @@ data class DeviceListItem(
     val id: String,
     @DrawableRes
     val icon: Int,
-    val time: String
+    val online: Boolean
 )
 
- fun fromDomainModel(domainModel: DeviceDomainModel): DeviceListItem {
-    val icon = when (domainModel.type) {
+fun fromDomainModel(device: Device): DeviceListItem {
+    val icon = when (device.info.type) {
         DeviceType.PLANT -> R.drawable.ic_plant
         else -> R.drawable.ic_unknown
     }
 
     return DeviceListItem(
-        domainModel.name,
-        domainModel.deviceId,
+        device.info.name,
+        device.info.deviceId,
         icon,
-        domainModel.timestamp.toString()
+        device.online
     )
- }
+}

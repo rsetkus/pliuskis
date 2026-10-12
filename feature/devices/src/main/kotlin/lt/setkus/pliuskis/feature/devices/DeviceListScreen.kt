@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridScope
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
@@ -28,7 +29,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -67,8 +67,6 @@ internal fun DeviceListScreen(
     devices: DevicesListScreenState,
     modifier: Modifier = Modifier
 ) {
-    val itemsList = remember { mutableListOf<DeviceListItem>() }
-
     when (devices) {
         is DevicesListScreenState.Error -> ErrorDevicesScreen(
             errorMessage = devices.error.message ?: "No message"
@@ -76,8 +74,9 @@ internal fun DeviceListScreen(
             Timber.d("Error: ${devices.error}")
         }
         DevicesListScreenState.Loading -> LoadingDevicesScreen(modifier)
-        is DevicesListScreenState.Success -> {
-            itemsList.add(devices.device)
+        is DevicesListScreenState.Success -> if (devices.devices.isEmpty()) {
+            EmptyDevicesScreen(modifier)
+        } else {
             Box(
                 modifier = modifier
                     .fillMaxSize()
@@ -86,12 +85,29 @@ internal fun DeviceListScreen(
                     columns = StaggeredGridCells.Adaptive(300.dp)
                 ) {
                     devicesFeed(
-                        devices = itemsList,
+                        devices = devices.devices,
                         onDeviceClick
                     )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun EmptyDevicesScreen(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = stringResource(id = R.string.devices_empty),
+            fontSize = 16.sp,
+            color = Color.Gray,
+            textAlign = TextAlign.Center
+        )
     }
 }
 
@@ -178,7 +194,7 @@ fun LazyStaggeredGridScope.devicesFeed(
 ) {
     items(
         items = devices,
-        key = { it.hashCode() },
+        key = { it.id },
         contentType = { "deviceList" }
     ) { device ->
         DeviceCard(
@@ -216,9 +232,38 @@ internal fun DeviceCard(
                         )
                         DeviceIcon(icId = device.icon)
                     }
+                    AvailabilityLabel(
+                        online = device.online,
+                        modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
+                    )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun AvailabilityLabel(
+    online: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val color = if (online) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+    val label = stringResource(id = if (online) R.string.device_online else R.string.device_offline)
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .background(color, shape = CircleShape)
+        )
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            color = color
+        )
     }
 }
 
