@@ -2,12 +2,15 @@ package lt.setkus.pliuskis.data.systemstate
 
 import io.kotest.core.spec.style.FunSpec
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import lt.setkus.pliuskis.data.IotManager
 
 class AwsSystemStateRequestTest : FunSpec({
 
-    val mockIotManager = mockk<IotManager>(relaxed = true)
+    val mockIotManager = mockk<IotManager>(relaxed = true) {
+        every { getClientId() } returns "client-id"
+    }
 
     val awsSystemStateRequest = AwsSystemStateRequest(mockIotManager)
 
@@ -17,6 +20,8 @@ class AwsSystemStateRequestTest : FunSpec({
         THEN should complete without error
     """) {
         awsSystemStateRequest.requestSystemState("1234")
-        coVerify { mockIotManager.publishString("state", "system/*/state") }
+        coVerify {
+            mockIotManager.publishString("""{"applicationId":"client-id"}""", "devices/1234/status")
+        }
     }
 })
