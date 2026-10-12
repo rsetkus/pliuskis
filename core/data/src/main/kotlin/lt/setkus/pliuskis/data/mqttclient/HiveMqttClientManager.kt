@@ -35,13 +35,13 @@ class HiveMqttClientManager(private val client: Mqtt3Client) : IotManager {
             .send()
     }
 
-    override fun subscribe(topic: String): Flow<String> = callbackFlow {
+    override fun subscribe(topic: String): Flow<IotMessage> = callbackFlow {
         val listener: (Mqtt3Publish) -> Unit = { result: Mqtt3Publish ->
-            val message = result.payloadAsBytes.toString(Charset.defaultCharset())
-            trySend(message)
+            val payload = result.payloadAsBytes.toString(Charset.defaultCharset())
+            trySend(IotMessage(result.topic.toString(), payload))
         }
 
-        val subscription = client
+        client
             .toAsync()
             .subscribeWith()
             .topicFilter(topic)
@@ -49,7 +49,11 @@ class HiveMqttClientManager(private val client: Mqtt3Client) : IotManager {
             .send()
 
         awaitClose {
-            subscription.cancel(false)
+            client
+                .toAsync()
+                .unsubscribeWith()
+                .topicFilter(topic)
+                .send()
         }
     }
 }
