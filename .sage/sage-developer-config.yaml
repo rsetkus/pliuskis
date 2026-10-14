@@ -1,0 +1,17 @@
+# Developer instructions for this project
+#
+# Each line below is a project-specific instruction. The agent reads these
+# at startup and uses Read tool to fetch any referenced files at runtime.
+#
+# Examples of good instructions:
+#   - "When running tests, follow docs/run_tests.md exactly."
+#   - "Read docs/coding_conventions.md before writing any code."
+#   - "Test files go in tests/<area>/test_<feature>.py -- never anywhere else."
+#   - "Specs use the template in docs/spec_template.md."
+#
+# Keep instructions short and concrete. Point at files for detail.
+
+instructions:
+  - "Read docs/conventions.md before writing any code."
+  - "Do NOT modify test files unless the test has an actual bug (e.g. wrong expected value, typo). The Developer's job is to make tests pass, not to change what they check. If you believe a test is wrong, escalate."
+  - "Every story REQUIRES an AC implementation map sidecar at <stories_dir>/STORY-<N>.implementation.md. Map each AC ID to the specific file(s) and function(s) that implement it. Run python .sage/_tools/verify_ac_map.py STORY-<N> and confirm it passes BEFORE flipping the story to TESTING."
