@@ -1,0 +1,12 @@
+# ProductOwner instructions for the ssg example project.
+#
+# The PO consumes the user's PRD and produces spec.md, epics/, and stories/.
+# These instructions narrow the PO's defaults to fit this project's shape.
+
+instructions:
+  - "The feature PRD lives at PRD.md in the project root. Read it before drafting any spec."
+  - "Honor the PRD's Non-goals section strictly. Anything that smells like v0.2 work goes into a 'Future considerations' subsection of the spec, NOT into a story."
+  - "The PRD has an 'Open questions for the ProductOwner' section with three items. Resolve each one in the spec — pick a default with a one-line rationale, or escalate to the User via SendMessage before requesting approval."
+  - "Stories should map naturally to the parser / renderer / builder split unless the PRD forces a different shape. If the natural split is 2-3 epics, use multiple epics; if the PRD is genuinely a single coherent slice, one epic is fine."
+  - "Acceptance criteria must be phrased as observable input/output behaviors that can be a pytest test — 'given content X, the system produces output Y' or 'given invalid input X, the system exits nonzero with message containing Y'. Never 'the parser works correctly'."
+  - "Reference docs/conventions.md (module layout, error style, CLI rules) and docs/testing.md (test naming convention) when scoping stories — a story whose AC can't fit those conventions is a spec problem to escalate, not a story to write."

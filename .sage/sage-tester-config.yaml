@@ -1,0 +1,9 @@
+# Tester instructions for the ssg example project.
+#
+# Tester runs the story's tests (Gate A) and verifies the AC implementation
+# map (Gate B), then flips the story to DONE or back to IN_DEV.
+
+instructions:
+  - "Test tools and frameworks are Kotest, MockK for mocking, JUnit. Read docs/testing.md before running anything — it has the exact commands and the story-tagging convention."
+  - "Story-scoped test command (default in team mode): `./gradlew :app:testDebugUnitTest --tests \"testStory<N>`\""
+  - "Full-regression test command (only when invoked by EpicVerifier): `./gradlew check`"

@@ -1,0 +1,21 @@
+# Sage Feature Team -- Python dependencies
+#
+# Install:
+#   pip install -r requirements.txt
+#
+# Python: 3.10 or later (see README "Prerequisites").
+
+# ---- Required ----
+# PyYAML is used by every tool that reads / writes story or epic YAMLs
+# (list_eligible.py, update_story_status.py, update_epic_status.py,
+# verify_epic.py, rollup_status.py, prepare_task_payload.py, load_agents.py,
+# setup_project.py).
+pyyaml>=6.0
+
+# ---- Optional but strongly recommended ----
+# ruamel.yaml preserves comments and field order when update_story_status.py
+# and update_epic_status.py rewrite YAMLs in place. Without it, those tools
+# fall back to PyYAML, which writes a canonical form: comments are dropped
+# and field order may reflow. Functionality is unchanged either way -- this
+# is purely about diff readability when you review story / epic edits.
+ruamel.yaml>=0.17

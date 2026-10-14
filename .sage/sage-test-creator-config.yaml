@@ -1,0 +1,11 @@
+# TestCreator instructions for the ssg example project.
+#
+# TestCreator writes the failing tests that capture a story's AC before the
+# Developer writes any code. Tests are the executable contract.
+
+instructions:
+  - "Test tools and frameworks are Kotest, MockK for mocking, JUnit. Read docs/testing.md before writing any test file."
+  - "Every test function MUST be named testStory<N>_<short_description> so the Tester can filter the story's tests."
+  - "Assert on OBSERVABLE output — returned HTML strings, file contents under dist/, stdout/stderr from the CLI, exit codes. Never assert on call counts or internal implementation details."
+  - "If an AC cannot be tested at your seam yet, write the test with TODO(\"reason\") and a clear reason, then note it in your completion message so the Developer knows to flip TODO off when implementing."
+  - "Don't write tests for behavior outside the story's AC list. If you notice missing AC, escalate to User rather than inventing coverage."
