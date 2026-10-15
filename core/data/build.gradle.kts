@@ -20,6 +20,13 @@ android {
             )
         }
     }
+
+    // HiveMQ brings Netty jars that each ship these files; the androidTest APK can't hold duplicates.
+    packaging {
+        resources {
+            excludes += listOf("META-INF/INDEX.LIST", "META-INF/io.netty.versions.properties")
+        }
+    }
 }
 
 secrets {

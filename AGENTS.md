@@ -26,9 +26,10 @@ Run tests in a specific module:
 ## CI
 
 Every push runs `.github/workflows/build.yml` on JDK 17 (Temurin): `./gradlew assemble`, then `./gradlew test`, then
-`./gradlew detekt ktlintCheck lint`, stopping at the first failure. Pull requests also run instrumented UI tests
-(`./gradlew app:connectedCheck` on an API 29 emulator, `build-ui.yml`). Run the same Gradle steps with JDK 17 before
-pushing; a newer local JDK can give different results.
+`./gradlew verifyPaparazziDebug` (screenshots against the committed goldens), then `./gradlew detekt ktlintCheck lint`,
+stopping at the first failure. Pull requests also run the instrumented tests of every module (`./gradlew connectedCheck`
+on an API 29 emulator, `build-ui.yml`). Run the same Gradle steps with JDK 17 before pushing; a newer local JDK can give
+different results. See `docs/testing.md` for the Compose test setup.
 
 ## Setup Requirements
 
