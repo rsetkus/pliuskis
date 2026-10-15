@@ -86,7 +86,10 @@ build-logic/           — Gradle convention plugins (application, library, feat
 - **Kotest** (FunSpec style) — primary unit test framework
 - **Mockk** — mocking
 - **Turbine** — Flow testing
+- **Paparazzi** — Compose screenshot tests, on the JVM
+- **Compose UI test** (`AndroidComposeTestRule`) — Compose behaviour tests, instrumented
 - Unit tests live in `src/test/kotlin`, instrumented tests in `src/androidTest/kotlin`
+- Details and commands: `docs/testing.md`
 
 ### Code Quality
 

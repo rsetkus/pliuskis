@@ -4,4 +4,7 @@
     <string name="devices_empty">No devices found. Make sure your device is powered on and connected.</string>
     <string name="device_online">Online</string>
     <string name="device_offline">Offline</string>
+    <string name="devices_error_title">Couldn\'t load your devices</string>
+    <string name="devices_error_message">Check your internet connection and try again.</string>
+    <string name="devices_retry">Retry</string>
 </resources>

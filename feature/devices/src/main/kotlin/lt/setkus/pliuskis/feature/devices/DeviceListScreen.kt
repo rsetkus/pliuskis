@@ -19,8 +19,6 @@ import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -28,6 +26,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,11 +35,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import lt.setkus.pliuskis.core.designsystem.component.ErrorScreen
 import lt.setkus.pliuskis.core.designsystem.component.LoadingWheel
 import org.koin.androidx.compose.koinViewModel
 import timber.log.Timber
@@ -57,6 +56,7 @@ internal fun DevicesListRoute(
     DeviceListScreen(
         onDeviceClick = onDeviceClick,
         devices = devicesListUiState,
+        onRetry = viewModel::retry,
         modifier = modifier
     )
 }
@@ -65,14 +65,15 @@ internal fun DevicesListRoute(
 internal fun DeviceListScreen(
     onDeviceClick: (String) -> Unit,
     devices: DevicesListScreenState,
+    onRetry: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     when (devices) {
-        is DevicesListScreenState.Error -> ErrorDevicesScreen(
-            errorMessage = devices.error.message ?: "No message"
-        ) {
-            Timber.d("Error: ${devices.error}")
-        }
+        is DevicesListScreenState.Error -> ErrorDevicesState(
+            error = devices.error,
+            onRetry = onRetry,
+            modifier = modifier
+        )
         DevicesListScreenState.Loading -> LoadingDevicesScreen(modifier)
         is DevicesListScreenState.Success -> if (devices.devices.isEmpty()) {
             EmptyDevicesScreen(modifier)
@@ -134,58 +135,22 @@ private fun LoadingDevicesScreen(modifier: Modifier = Modifier) {
     }
 }
 
+/**
+ * Discovery failed: shows the generic error screen with user-facing texts and a Retry action. The
+ * exception itself is only logged, never shown.
+ */
 @Composable
-private fun ErrorDevicesScreen(errorMessage: String, onRetry: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        // Use a basic warning symbol if icons are not working
-        Box(
-            modifier = Modifier
-                .size(80.dp)
-                .background(MaterialTheme.colorScheme.error.copy(alpha = 0.1f), shape = CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "!",
-                color = MaterialTheme.colorScheme.error,
-                fontSize = 48.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Text(
-            text = "Connection Error",
-            fontWeight = FontWeight.Bold,
-            fontSize = 20.sp
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
-            text = errorMessage,
-            fontSize = 16.sp,
-            color = Color.Gray,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Button(
-            onClick = onRetry,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary
-            )
-        ) {
-            Text(text = "Retry Connection")
-        }
+private fun ErrorDevicesState(error: Throwable, onRetry: () -> Unit, modifier: Modifier = Modifier) {
+    LaunchedEffect(error) {
+        Timber.w(error, "Device discovery failed")
     }
+    ErrorScreen(
+        title = stringResource(id = R.string.devices_error_title),
+        message = stringResource(id = R.string.devices_error_message),
+        modifier = modifier,
+        actionLabel = stringResource(id = R.string.devices_retry),
+        onAction = onRetry
+    )
 }
 
 fun LazyStaggeredGridScope.devicesFeed(
