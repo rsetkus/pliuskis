@@ -20,8 +20,9 @@ live changes. This is the same pattern as Home Assistant MQTT discovery and the 
 
 1. App launch does not connect. When the device list screen collects its state, `DevicesViewModel` connects the shared
    HiveMQ client (`ConnectUseCase`) on an I/O dispatcher, because the HiveMQ connect call blocks. The screen shows
-   `Loading` meanwhile. A client that is already connected, connecting or reconnecting counts as connected. The client
-   reconnects automatically and re-subscribes, after which the broker replays the retained snapshot again.
+   `Loading` meanwhile. An already connected client returns at once. A client that is still connecting or reconnecting
+   is waited on (up to 10 s, without a second connect) and counts as a failure if it doesn't connect in time. The
+   client reconnects automatically and re-subscribes, after which the broker replays the retained snapshot again.
 2. Only after the connection succeeds does `DevicesViewModel` collect `ObserveDevicesUseCase`. The data layer
    (`SubscribeDeviceTopics`) subscribes to both wildcard filters, takes `deviceId` from the topic, and emits
    `DeviceEvent.Info` / `DeviceEvent.Availability`.
@@ -48,11 +49,15 @@ taps can't queue extra blocking connects.
 - Firmware: `picow-pliuskis/main.py` (`mqtt_connect`, `connect_with_backoff`, ping in the main loop)
 
 ## Gotchas & decisions
-- **The device list owns the connection.** Nothing connects at app launch, and the splash screen doesn't wait for MQTT.
-  The control screen relies on the shared client already being connected; it is only reachable from a listed device.
+- **Each screen that uses MQTT connects for itself.** Nothing connects at app launch, and the splash screen doesn't wait
+  for MQTT. `DevicesViewModel` connects before discovery, and `ControlViewModel` connects before it requests or
+  subscribes to status. The control screen can't rely on the device list: after process death, navigation restores
+  `control/{deviceId}` without composing the device list.
 - **HiveMQ throws on a second connect.** `connect()` on a client that is already connected or connecting throws
-  `MqttClientStateException`. `HiveMqttClientManager.connect` checks the client state first and treats that exception
-  as connected, so re-collecting the device list (back from background after the 5 s stop timeout) doesn't error.
+  `MqttClientStateException`. `HiveMqttClientManager.connect` checks the client state first: connected returns at once,
+  and connecting or reconnecting waits for that attempt. A concurrent connect that wins the race (the exception) is
+  waited on the same way. So re-collecting the device list (back from background after the 5 s stop timeout) doesn't
+  error, and a slow reconnect shows `Loading` and then the result instead of an early "No devices found".
 - **The Last Will only fires on an ungraceful loss** (power cut, WiFi drop, missed keepalive). A clean `DISCONNECT`
   suppresses it, so the firmware publishes `offline` itself before disconnecting.
 - **Keepalive needs pings.** `umqtt.simple` never sends PINGREQ on its own, so the firmware pings every

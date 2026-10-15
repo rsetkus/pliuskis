@@ -7,10 +7,10 @@ class ConnectMqttSource(
     private val manager: IotManager
 ) : Connectable {
 
-    /** Throws when the broker rejects the connection, so callers see it as a failure. */
+    /** Throws when the connection isn't established (rejected, or a pending attempt timed out). */
     override fun connect(): String {
         val state = manager.connect()
-        check(state == MqttConnectionState.CONNECTED) { "Broker rejected the connection: $state" }
+        check(state == MqttConnectionState.CONNECTED) { "MQTT connection not established: $state" }
         return state.toString()
     }
 }

@@ -15,7 +15,14 @@ import timber.log.Timber
 import java.nio.charset.Charset
 import kotlin.jvm.optionals.getOrNull
 
-class HiveMqttClientManager(private val client: Mqtt3Client) : IotManager {
+private const val PENDING_CONNECTION_TIMEOUT_MILLIS = 10_000L
+private const val PENDING_CONNECTION_POLL_MILLIS = 100L
+
+class HiveMqttClientManager(
+    private val client: Mqtt3Client,
+    private val pendingConnectionTimeoutMillis: Long = PENDING_CONNECTION_TIMEOUT_MILLIS,
+    private val pendingConnectionPollMillis: Long = PENDING_CONNECTION_POLL_MILLIS,
+) : IotManager {
 
     private fun mapMqtt3ConnAckCode(conn: Mqtt3ConnAck): MqttConnectionState {
         return when (conn.returnCode) {
@@ -25,14 +32,15 @@ class HiveMqttClientManager(private val client: Mqtt3Client) : IotManager {
     }
 
     /**
-     * Connects unless the client is already connected, connecting or reconnecting: HiveMQ throws
-     * [MqttClientStateException] for those, but for callers the connection is there (or on its way).
+     * Connects a disconnected client. A client that is already connecting or reconnecting is not
+     * connected yet: wait for that attempt (HiveMQ throws [MqttClientStateException] on a second
+     * connect) and report [MqttConnectionState.FAILED] if it doesn't succeed in time.
      */
     override fun connect(): MqttConnectionState {
-        val state = if (client.state == MqttClientState.DISCONNECTED) {
-            connectBlocking()
-        } else {
-            MqttConnectionState.CONNECTED
+        val state = when (client.state) {
+            MqttClientState.DISCONNECTED -> connectBlocking()
+            MqttClientState.CONNECTED -> MqttConnectionState.CONNECTED
+            else -> awaitPendingConnection()
         }
         return state
     }
@@ -43,9 +51,18 @@ class HiveMqttClientManager(private val client: Mqtt3Client) : IotManager {
         } catch (alreadyConnecting: MqttClientStateException) {
             // Another caller started connecting between the state check and this call.
             Timber.d(alreadyConnecting, "MQTT client is already connecting")
-            MqttConnectionState.CONNECTED
+            awaitPendingConnection()
         }
         return state
+    }
+
+    /** Waits for an attempt someone else started (a first connect or HiveMQ's automatic reconnect). */
+    private fun awaitPendingConnection(): MqttConnectionState {
+        val deadline = System.currentTimeMillis() + pendingConnectionTimeoutMillis
+        while (!client.state.isConnected && System.currentTimeMillis() < deadline) {
+            Thread.sleep(pendingConnectionPollMillis)
+        }
+        return if (client.state.isConnected) MqttConnectionState.CONNECTED else MqttConnectionState.FAILED
     }
 
     override fun getClientId() =

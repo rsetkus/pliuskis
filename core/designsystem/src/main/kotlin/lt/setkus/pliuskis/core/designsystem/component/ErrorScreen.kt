@@ -3,13 +3,18 @@ package lt.setkus.pliuskis.core.designsystem.component
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
@@ -33,7 +38,8 @@ private const val ICON_CONTAINER_ALPHA = 0.1f
 /**
  * Full-screen error state: an error icon, a [title], a [message] and, when both [actionLabel] and
  * [onAction] are given, a button that calls [onAction]. Knows nothing about what failed; callers
- * pass in user-facing texts.
+ * pass in user-facing texts. Centered when it fits; scrolls in short windows so the action stays
+ * reachable.
  */
 @Composable
 fun ErrorScreen(
@@ -43,10 +49,31 @@ fun ErrorScreen(
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
 ) {
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        ErrorContent(
+            title = title,
+            message = message,
+            actionLabel = actionLabel,
+            onAction = onAction,
+            // At least the window's height, so content that fits stays centered.
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .heightIn(min = maxHeight)
+        )
+    }
+}
+
+@Composable
+private fun ErrorContent(
+    title: String,
+    message: String,
+    actionLabel: String?,
+    onAction: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(ScreenPadding),
+        modifier = modifier.padding(ScreenPadding),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
