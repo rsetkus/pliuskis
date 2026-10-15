@@ -30,6 +30,8 @@ android {
             excludes += listOf("META-INF/INDEX.LIST", "META-INF/io.netty.versions.properties")
         }
     }
+
+    testOptions.unitTests.all { it.useJUnitPlatform() }
 }
 
 dependencies {
@@ -65,6 +67,9 @@ dependencies {
     implementation(libs.android.material)
 
     // Unit tests
+    testImplementation(libs.kotest.runner.junit5)
+    testImplementation(libs.kotest.assertions.core)
+
     androidTestImplementation(libs.androidx.compose.ui.test.junit)
     androidTestImplementation(libs.androidx.compose.ui.test.manifest)
 

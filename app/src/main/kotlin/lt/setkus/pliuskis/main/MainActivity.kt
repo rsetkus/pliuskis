@@ -5,55 +5,28 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
-import kotlinx.coroutines.launch
 import lt.setkus.pliuskis.core.designsystem.theme.PliuskisTheme
 import lt.setkus.pliuskis.data.util.NetworkConnectivity
-import lt.setkus.pliuskis.main.MainActivityUiState.Loading
 import lt.setkus.pliuskis.ui.PliuskisApp
 import org.koin.android.ext.android.inject
 import org.koin.androidx.compose.KoinAndroidContext
-import org.koin.androidx.viewmodel.ext.android.viewModel
 import org.koin.core.annotation.KoinExperimentalAPI
 
 class MainActivity : ComponentActivity() {
 
     private val networkConnectivity by inject<NetworkConnectivity>()
-    private val mainViewModel: MainActivityViewModel by viewModel()
     @OptIn(KoinExperimentalAPI::class)
     override fun onCreate(savedInstanceState: Bundle?) {
-        val splashScreen = installSplashScreen()
+        // The splash screen no longer waits for MQTT: DevicesViewModel connects and shows loading itself.
+        installSplashScreen()
         super.onCreate(savedInstanceState)
-
-        var uiState: MainActivityUiState by mutableStateOf(Loading)
-        lifecycleScope.launch {
-            lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                mainViewModel.uiState.collect {
-                    uiState = it
-                }
-            }
-        }
-
-        splashScreen.setKeepOnScreenCondition {
-            when (uiState) {
-                Loading -> true
-                else -> false
-            }
-        }
 
         enableEdgeToEdge()
 
         setContent {
-            val darkTheme = shouldUseDarkTheme(uiState)
+            val darkTheme = DARK_THEME
 
             DisposableEffect(darkTheme) {
                 enableEdgeToEdge(
@@ -71,8 +44,8 @@ class MainActivity : ComponentActivity() {
 
             PliuskisTheme(
                 darkTheme = darkTheme,
-                androidTheme = shouldUseAndroidTheme(uiState),
-                disableDynamicTheming = shouldDisableDynamicTheming(uiState),
+                androidTheme = false,
+                disableDynamicTheming = false,
             ) {
                 KoinAndroidContext {
                     PliuskisApp(networkConnectivity)
@@ -82,29 +55,8 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@Composable
-private fun shouldDisableDynamicTheming(
-    uiState: MainActivityUiState
-): Boolean = when (uiState) {
-    Loading -> false
-    else -> false
-}
-
-@Composable
-private fun shouldUseDarkTheme(
-    uiState: MainActivityUiState
-): Boolean = when (uiState) {
-    Loading -> isSystemInDarkTheme()
-    else -> false
-}
-
-@Composable
-private fun shouldUseAndroidTheme(
-    uiState: MainActivityUiState,
-): Boolean = when (uiState) {
-    Loading -> false
-    else -> false
-}
+/** The app is shown in the light theme, as it was once the connection-gated splash screen closed. */
+private const val DARK_THEME = false
 
 private const val LIGHT_ALPHA = 0xe6
 private const val LIGHT_RGB = 0xFF
