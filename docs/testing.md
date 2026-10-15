@@ -73,8 +73,11 @@ that start with a lowercase letter.
 - **Commands:**
   - Record goldens: `./gradlew <module>:recordPaparazziDebug`
   - Compare against goldens: `./gradlew <module>:verifyPaparazziDebug`. A missing golden fails the run.
-  - `testDebugUnitTest` (and so `./gradlew test` in CI) runs snapshot tests but doesn't compare them. Use
+  - `testDebugUnitTest` (and so `./gradlew test`) runs snapshot tests but doesn't compare them. Use
     `verifyPaparazziDebug`.
+- **CI:** `build.yml` runs `./gradlew verifyPaparazziDebug` on every push, so a snapshot that no longer matches its
+  golden fails the build. On failure, the job uploads the diff images from `build/paparazzi/failures/` as the
+  `paparazzi-failures` artifact.
 - **Workflow:**
   1. TestCreator writes the snapshot tests.
   2. Developer implements the composable, then records the goldens.
@@ -131,8 +134,8 @@ that start with a lowercase letter.
   - A module that depends on `core:data` also needs `packaging.resources.excludes` for `META-INF/INDEX.LIST` and
     `META-INF/io.netty.versions.properties`, as in `feature/devices/build.gradle.kts`. HiveMQ's Netty jars each ship
     them, and the androidTest APK fails to package with duplicates.
-- **CI:** `build-ui.yml` runs only `app:connectedCheck`. Behaviour tests in other modules run locally, with an emulator
-  or a connected device.
+- **CI:** `build-ui.yml` runs `./gradlew connectedCheck` on an API 29 emulator for every pull request. It covers the
+  behaviour tests of every module. Run the same command locally, with an emulator or a connected device.
 
 
 ## What kinds of tests to write
