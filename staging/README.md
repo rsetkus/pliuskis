@@ -10,7 +10,7 @@ real device firmware ([pico-pliuskis](https://github.com/rsetkus/pico-pliuskis))
 
 ```mermaid
 flowchart LR
-    app["Android app<br/>(emulator: 10.0.2.2:1883)"]
+    app["Android app<br/>(emulator: 10.0.2.2:1883,<br/>phone: DEBUG_BROKER_HOST)"]
     smoke["scripts/smoke-test.sh"]
 
     subgraph compose["docker compose (project pliuskis-staging)"]
@@ -86,8 +86,17 @@ docker compose ps
 2. Open the `pliuskis` project in Android Studio and run the **debug** build on the emulator.
    - The debug build already connects to `10.0.2.2:1883`, which the emulator maps to port 1883 on your computer.
      So it reaches this broker without any app setting.
-   - Physical phones can't connect yet, because the app can't be pointed at another address.
 3. The device list shows **Basil** and **Fern**, both online.
+
+**On a physical phone** instead of the emulator:
+1. Find your computer's address on the local network, for example `ipconfig getifaddr en0` on macOS.
+2. Add it to `secrets.properties` in the `pliuskis` project (create the file if it doesn't exist):
+   ```properties
+   DEBUG_BROKER_HOST=192.168.68.67
+   ```
+3. Run the **debug** build on the phone. The phone must be on the same WiFi as the computer.
+   - If it can't connect, check that a VPN or firewall on the computer doesn't block port 1883 from the local network.
+   - Remove the line again to go back to the emulator default, `10.0.2.2`.
 
 ### 6. Use the app against the mock devices
 - **Open Basil:** the control screen shows "I am good…" and "More than enough water."

@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "stitch": {
+      "command": "npx",
+      "args": ["-y", "@_davideast/stitch-mcp", "proxy"],
+      "env": {
+        "GOOGLE_CLOUD_PROJECT": "8585223564584976228"
+      }
+    }
+  }
+}
