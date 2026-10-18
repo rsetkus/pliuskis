@@ -11,7 +11,7 @@ import javax.net.ssl.KeyManagerFactory
 private const val SERVER_PORT = 1883
 fun getDebugMqttClient() = MqttClient.builder()
     .identifier("android-debug-client")
-    .serverHost("10.0.2.2")
+    .serverHost(BuildConfig.DEBUG_BROKER_HOST)
     .serverPort(SERVER_PORT)
     .automaticReconnectWithDefaultConfig()
     .useMqttVersion3()

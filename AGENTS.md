@@ -36,6 +36,8 @@ different results. See `docs/testing.md` for the Compose test setup.
 - **JDK 17** required (enforced by build-logic convention plugins)
 - **AWS IoT credentials** — copy `default.secrets.properties` to `secrets.properties` and fill in:
   - `AMAZON_IOT_ENDPOINT`, `KEYSTORE_NAME`, `KEYSTORE_PASSWORD`, `CERT_ID`
+- **Debug broker** — the debug build connects to `DEBUG_BROKER_HOST`:1883 (default `10.0.2.2`, the emulator's alias
+  for the host). Set it in `secrets.properties` to a LAN address to run the debug build on a physical phone.
 
 ## Conventions - Kotlin / correctness
 - Avoid `!!`, use smart-cast, `:?`. Every function should have singe exit `return`. For a real invariant use `checkNotNull`/`requireNotNull` with a message.
