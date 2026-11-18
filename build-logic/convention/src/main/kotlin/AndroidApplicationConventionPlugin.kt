@@ -7,10 +7,8 @@ import org.gradle.kotlin.dsl.configure
 class AndroidApplicationConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
         with(target) {
-            with(pluginManager) {
-                apply("com.android.application")
-                apply("org.jetbrains.kotlin.android")
-            }
+            // AGP 9 compiles Kotlin itself (built-in Kotlin), so no separate Kotlin Android plugin is applied.
+            pluginManager.apply("com.android.application")
 
             extensions.configure<ApplicationExtension> {
                 configureKotlinAndroid(this)

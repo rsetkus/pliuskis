@@ -9,6 +9,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # JDK 17 is the minimum for AGP 9.3 and Gradle 9.7 (see AGENTS.md)
       - name: Set Up JDK
         uses: actions/setup-java@v4
         with:
