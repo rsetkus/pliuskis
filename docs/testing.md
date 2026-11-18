@@ -94,8 +94,10 @@ that start with a lowercase letter.
     runs together.
   - Copy the Guava `dependencies.constraints` block. Without it, LayoutLib fails with an `IllegalAccessError` on
     `Sets.toImmutableEnumSet` ([paparazzi#906](https://github.com/cashapp/paparazzi/issues/906)).
-- **Version pin:** Paparazzi is pinned to 1.3.2, the last release that runs on AGP 8.1 and Gradle 8.0. Newer releases
-  pull in a newer AGP and need Gradle 8.4 or later.
+- **Version pin:** Paparazzi stays on 1.3.2. No stable release supports the AGP 9 DSL: 1.x looks up AGP's legacy
+  `TestedExtension`, which AGP 9 registers only with `android.newDsl=false` (set in `gradle.properties`), and the 2.x
+  line that supports AGP 9 is still alpha and needs JDK 21. Moving to 2.x means removing `android.newDsl=false` and
+  re-recording the goldens.
 - **Jetifier:** `gradle.properties` lists `android.jetifier.ignorelist=android-base-common,common`, because Jetifier
   can't rewrite LayoutLib's `com.android.tools:common`.
 

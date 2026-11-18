@@ -1,7 +1,6 @@
 plugins {
     alias(libs.plugins.pliuskis.android.library)
     alias(libs.plugins.pliuskis.android.library.compose)
-    alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.pliuskis.android.code.quality)
     alias(libs.plugins.paparazzi)
 }
