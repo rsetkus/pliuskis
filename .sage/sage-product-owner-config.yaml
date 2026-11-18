@@ -1,12 +1,17 @@
-# ProductOwner instructions for the ssg example project.
+# ProductOwner instructions for pliuskis (Android app, Kotlin, Jetpack Compose, MQTT to IoT plant devices).
 #
-# The PO consumes the user's PRD and produces spec.md, epics/, and stories/.
+# The PO turns a Jira epic/issue or PRD.md into spec.md, epics/ and stories/.
 # These instructions narrow the PO's defaults to fit this project's shape.
 
 instructions:
-  - "The feature PRD lives at PRD.md in the project root. Read it before drafting any spec."
-  - "Honor the PRD's Non-goals section strictly. Anything that smells like v0.2 work goes into a 'Future considerations' subsection of the spec, NOT into a story."
-  - "The PRD has an 'Open questions for the ProductOwner' section with three items. Resolve each one in the spec — pick a default with a one-line rationale, or escalate to the User via SendMessage before requesting approval."
-  - "Stories should map naturally to the parser / renderer / builder split unless the PRD forces a different shape. If the natural split is 2-3 epics, use multiple epics; if the PRD is genuinely a single coherent slice, one epic is fine."
-  - "Acceptance criteria must be phrased as observable input/output behaviors that can be a pytest test — 'given content X, the system produces output Y' or 'given invalid input X, the system exits nonzero with message containing Y'. Never 'the parser works correctly'."
-  - "Reference docs/conventions.md (module layout, error style, CLI rules) and docs/testing.md (test naming convention) when scoping stories — a story whose AC can't fit those conventions is a spec problem to escalate, not a story to write."
+  - "Read AGENTS.md first: module layout (app, core/domain, core/data, core/designsystem, feature/*, build-logic), build commands, CI and repo rules."
+  - "Source of requirements: when the user names a Jira issue or epic (PLIUS-N or a Jira URL), fetch it and every child issue with the Atlassian tools and treat them as the requirements; quote their acceptance criteria rather than re-inventing them. Otherwise read PRD.md. If neither exists, ask the User."
+  - "For a Jira epic, write one story per child task, keep the Jira key in the story's notes field (e.g. notes: \"Jira PLIUS-9\"), and mirror the Jira 'blocks' links as story dependencies. One Jira epic = one sage epic unless the epic is genuinely split into independent deliverables."
+  - "PRD.md describes the v0.1 MVP. Honor its Non-goals for product features (no design system, assets, i18n, configuration files, analytics); anything that smells like v0.2 goes into a 'Future considerations' subsection of the spec, not into a story. Build, test and infrastructure work (toolchain, libraries, CI) is not limited by those non-goals."
+  - "Before scoping a story that touches an existing flow, read its doc in docs/features/ (e.g. device-discovery.md). The MQTT topics and payloads are a contract with the Pico firmware (rsetkus/pico-pliuskis): any story that changes a topic or payload must say so in Technical Notes, because the firmware needs the same change."
+  - "Acceptance criteria must be observable and testable with the project's stack (docs/testing.md): Kotest FunSpec unit tests on the JVM, Paparazzi screenshot tests, or Compose UI behaviour tests. Phrase them as 'given X, the system produces Y' with literal values (JSON payloads, topic strings, UI state), never 'works correctly'."
+  - "Build or tooling AC may be phrased as a Gradle command outcome (e.g. './gradlew assemble test verifyPaparazziDebug detekt ktlintCheck lint exits 0', './gradlew connectedCheck exits 0 on the API 29 emulator'). Use version floors (>= X), not exact versions, so AC don't go stale."
+  - "Mark any AC that cannot be automated as '(manual check)' and say where its evidence goes (the story's implementation map). Known manual checks: launching the release build needs secrets.properties and core/data/src/main/assets/legacy-keystore.p12 (gitignored); MQTT behaviour can be checked against the staging broker and simulated devices in staging/ (see staging/README.md) on the emulator; a physical phone or the real Pico needs the User."
+  - "AC must not require git writes (commits, branches, PRs): agents may not commit without the User's request. Write 'changed Paparazzi goldens are listed with a reason for review', not 'goldens are in a separate commit'."
+  - "Scope stories so each one leaves the build green on its own (CI runs per push). If a later story is likely to change lines an earlier story's AC cite, say so in Technical Notes."
+  - "Reference docs/conventions.md (single return, no !!, naming) and docs/testing.md (Story<N> test naming, story-scoped commands) when scoping stories. A story whose AC can't fit those conventions is a spec problem to escalate to the User, not a story to write."
