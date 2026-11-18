@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import lt.setkus.pliuskis.core.connect.ConnectUseCase
 import lt.setkus.pliuskis.core.systemstate.SystemState
-import org.koin.androidx.viewmodel.dsl.viewModel
+import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 val controlModule = module {

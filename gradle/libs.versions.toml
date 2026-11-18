@@ -8,32 +8,30 @@ secrets = "2.0.1"
 androidTools = "32.3.1"
 androidxComposeBom = "2024.01.00"
 androidxActivity = "1.8.2"
-androidxLifecycle = "2.7.0"
-androidxNavigation = "2.7.4"
+androidxLifecycle = "2.10.0"
+androidxNavigation = "2.9.8"
 androidxCompat = "1.6.1"
 androidMaterial = "1.11.0"
 androidxCoreSplashscreen = "1.0.1"
 junit = "4.13.2"
 junitVintage = "5.8.2"
 junitPlatformLauncher = "1.8.2"
-mockk = "1.12.0"
-kotlinxCoroutines = "1.7.3"
+mockk = "1.14.12"
+kotlinxCoroutines = "1.11.0"
 junitExt = "1.1.5"
 espressoCore = "3.5.1"
 androidxTracing = "1.3.0-alpha02"
 androidxCore = "1.12.0"
 timber = "5.0.1"
-amazonwsAndroidIot = "2.75.0"
-gson = "2.8.9"
-kotest = "5.7.2"
-turbine = "1.0.0"
+kotest = "6.2.7"
+turbine = "1.2.1"
 paparazzi = "1.3.2"
 androidxArchCoreTesting = "2.2.0"
-koin = "3.5.6"
+koin = "4.1.1"
 hiveMqClient = "1.3.3"
-kotlinxSerializationJson = "1.6.3"
-kotlinxDateTime = "0.3.2"
-arrow = "1.2.4"
+kotlinxSerializationJson = "1.13.0"
+kotlinxDateTime = "0.8.0"
+arrow = "2.3.0.1"
 
 [libraries]
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "androidxComposeBom" }
@@ -48,8 +46,6 @@ kotlin-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-c
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "kotlinxDateTime"}
 timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
-amazonaws-android-iot = { group = "com.amazonaws", name = "aws-android-sdk-iot", version.ref = "amazonwsAndroidIot" }
-gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 koin = { group = "io.insert-koin", name = "koin-android", version.ref = "koin" }
 koin-compose = { group = "io.insert-koin", name = "koin-androidx-compose",  version.ref = "koin" }
 hiveMqClient = { group = "com.hivemq", name = "hivemq-mqtt-client", version.ref = "hiveMqClient" }

@@ -98,6 +98,11 @@ that start with a lowercase letter.
   `TestedExtension`, which AGP 9 registers only with `android.newDsl=false` (set in `gradle.properties`), and the 2.x
   line that supports AGP 9 is still alpha and needs JDK 21. Moving to 2.x means removing `android.newDsl=false` and
   re-recording the goldens.
+- **compileSdk ceiling:** Paparazzi 1.x renders with the API 34 LayoutLib and copies `android.os.Build` from the
+  module's `android.jar`. From compileSdk 36 that jar has `Build.VERSION_CODES_FULL`, which LayoutLib lacks, so every
+  snapshot fails with `NoSuchElementException` in `Renderer.configureBuildProperties`. `COMPILE_SDK` stays at 35
+  (`build-logic/.../Constants.kt`), which also caps AndroidX libraries that need compileSdk 36+ (Lifecycle 2.11,
+  Navigation 2.10, Koin 4.2 through Activity 1.12). Lift both together when Paparazzi moves to 2.x.
 - **Jetifier:** `gradle.properties` lists `android.jetifier.ignorelist=android-base-common,common`, because Jetifier
   can't rewrite LayoutLib's `com.android.tools:common`.
 
