@@ -1,12 +1,12 @@
 package lt.setkus.feature.control
 
-import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toJavaLocalDateTime
 import kotlinx.datetime.toLocalDateTime
 import lt.setkus.pliuskis.core.systemstate.SystemState
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlin.time.Instant
 
 private const val PATTERN_FORMAT = "MMMM d EEEE, yyyy HH:mm:ss"
 private const val LOW_HUMIDITY_THRESHOLD = 5f

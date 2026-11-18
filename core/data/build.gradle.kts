@@ -40,7 +40,6 @@ dependencies {
 
     implementation(project(":core:domain"))
 
-    implementation(libs.amazonaws.android.iot)
     implementation(libs.hiveMqClient)
 
     testImplementation(libs.junit)

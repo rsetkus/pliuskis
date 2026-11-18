@@ -11,13 +11,11 @@ import lt.setkus.pliuskis.core.designsystem.theme.PliuskisTheme
 import lt.setkus.pliuskis.data.util.NetworkConnectivity
 import lt.setkus.pliuskis.ui.PliuskisApp
 import org.koin.android.ext.android.inject
-import org.koin.androidx.compose.KoinAndroidContext
-import org.koin.core.annotation.KoinExperimentalAPI
 
 class MainActivity : ComponentActivity() {
 
     private val networkConnectivity by inject<NetworkConnectivity>()
-    @OptIn(KoinExperimentalAPI::class)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // The splash screen no longer waits for MQTT: DevicesViewModel connects and shows loading itself.
         installSplashScreen()
@@ -47,9 +45,8 @@ class MainActivity : ComponentActivity() {
                 androidTheme = false,
                 disableDynamicTheming = false,
             ) {
-                KoinAndroidContext {
-                    PliuskisApp(networkConnectivity)
-                }
+                // Koin 4 finds the started Koin context itself; the KoinAndroidContext wrapper is no longer needed.
+                PliuskisApp(networkConnectivity)
             }
         }
     }
