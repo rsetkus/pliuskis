@@ -32,9 +32,6 @@ dependencies {
     api(libs.timber)
     api(libs.koin)
 
-    // Network
-    implementation(libs.gson)
-
     // Unit tests
     testImplementation(libs.junit)
     testImplementation(libs.mockk)

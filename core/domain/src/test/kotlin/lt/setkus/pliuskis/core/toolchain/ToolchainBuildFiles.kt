@@ -49,6 +49,20 @@ internal object ToolchainBuildFiles {
             .toList()
     }
 
+    /** Every Gradle script (`*.gradle.kts`) of the repository and of `build-logic`, outside build output. */
+    val gradleScripts: List<File> by lazy { repoFiles { it.name.endsWith(".gradle.kts") } }
+
+    /** Every Kotlin source (`*.kt`) under a `src/` directory of any module, outside build output. */
+    val moduleKotlinSources: List<File> by lazy {
+        repoFiles { it.extension == "kt" && it.invariantSeparatorsPath.contains("/src/") }
+    }
+
+    private fun repoFiles(filter: (File) -> Boolean): List<File> =
+        repoRoot.walkTopDown()
+            .onEnter { it.name != "build" && !it.name.startsWith(".") }
+            .filter { it.isFile && filter(it) }
+            .toList()
+
     /** Convention plugin id to the source text of its implementation class. */
     val conventionPlugins: Map<String, String> by lazy {
         val registrations = File(repoRoot, "build-logic/convention/build.gradle.kts").readText()
@@ -99,6 +113,13 @@ internal class VersionCatalog(
     data class CatalogEntry(val coordinate: String, val versionRef: String?, val inlineVersion: String?)
 
     fun resolveVersion(entry: CatalogEntry): String? = entry.versionRef?.let { versions[it] } ?: entry.inlineVersion
+
+    /**
+     * Resolved versions of every library whose `group:name` coordinate starts with [coordinatePrefix], including a
+     * BOM entry. Libraries without a version (managed by a BOM) are skipped.
+     */
+    fun libraryVersions(coordinatePrefix: String): List<String> =
+        libraries.values.filter { it.coordinate.startsWith(coordinatePrefix) }.mapNotNull { resolveVersion(it) }
 
     fun pluginIdForAlias(alias: String): String? =
         plugins.entries.firstOrNull { normalize(it.key) == normalize(alias) }?.value?.coordinate

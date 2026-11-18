@@ -2,7 +2,7 @@ package lt.setkus.pliuskis.feature.devices
 
 import kotlinx.coroutines.Dispatchers
 import lt.setkus.pliuskis.core.devicelist.Device
-import org.koin.androidx.viewmodel.dsl.viewModel
+import org.koin.core.module.dsl.viewModel
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
