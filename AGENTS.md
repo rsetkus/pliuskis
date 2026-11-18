@@ -25,7 +25,7 @@ Run tests in a specific module:
 
 ## CI
 
-Every push runs `.github/workflows/build.yml` on JDK 17 (Temurin): `./gradlew assemble`, then `./gradlew test`, then
+Every push runs `.github/workflows/build.yml` on JDK 17 (Temurin), the JDK that AGP 9.3 requires: `./gradlew assemble`, then `./gradlew test`, then
 `./gradlew verifyPaparazziDebug` (screenshots against the committed goldens), then `./gradlew detekt ktlintCheck lint`,
 stopping at the first failure. Pull requests also run the instrumented tests of every module (`./gradlew connectedCheck`
 on an API 29 emulator, `build-ui.yml`). Run the same Gradle steps with JDK 17 before pushing; a newer local JDK can give
@@ -33,7 +33,7 @@ different results. See `docs/testing.md` for the Compose test setup.
 
 ## Setup Requirements
 
-- **JDK 17** required (enforced by build-logic convention plugins)
+- **JDK 17** required: the minimum for AGP 9.3 and Gradle 9.7, and the target of the build-logic convention plugins
 - **AWS IoT credentials** — copy `default.secrets.properties` to `secrets.properties` and fill in:
   - `AMAZON_IOT_ENDPOINT`, `KEYSTORE_NAME`, `KEYSTORE_PASSWORD`, `CERT_ID`
 - **Debug broker** — the debug build connects to `DEBUG_BROKER_HOST`:1883 (default `10.0.2.2`, the emulator's alias
@@ -44,6 +44,12 @@ different results. See `docs/testing.md` for the Compose test setup.
 
 ## Versions
 Versions live in `gradle/libs.versions.toml`, referenced with `libs.X` notation. Never inline a version.
+
+Toolchain: the Gradle wrapper, AGP (`androidGradlePlugin`) and Kotlin (`kotlin`, the only Kotlin version entry) must
+stay a set that the Kotlin Gradle plugin supports (see the compatibility table on kotlinlang.org). AGP 9 compiles Kotlin
+itself (built-in Kotlin), so never apply `org.jetbrains.kotlin.android`. Compose modules get the Kotlin Compose compiler
+plugin (`org.jetbrains.kotlin.plugin.compose`) from the `pliuskis.*.compose` convention plugins. `gradle.properties` sets
+`android.newDsl=false` only because Paparazzi 1.x needs AGP's legacy extension types; remove it when Paparazzi moves to 2.x.
 
 ## Git / workflow
 - Do not run git write operations (commit, push, branch) without an explicit request. Never commit to `main`/`master`.

@@ -6,6 +6,8 @@ plugins {
 
 android {
     namespace = "lt.setkus.pliuskis.data"
+    // MqttClientProducer reads the broker and keystore settings from BuildConfig (filled by the secrets plugin)
+    buildFeatures.buildConfig = true
     defaultConfig {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
