@@ -45,14 +45,14 @@ private class MqttLog {
     val events = CopyOnWriteArrayList<String>()
 
     fun connectable(onConnect: () -> String) = object : Connectable {
-        override fun connect(): String {
+        override suspend fun connect(): String {
             events += CONNECT
             return onConnect()
         }
     }
 
     fun requestable() = object : SystemStateRequestable {
-        override fun requestSystemState(deviceId: String) {
+        override suspend fun requestSystemState(deviceId: String) {
             events += REQUEST
         }
     }
@@ -76,7 +76,7 @@ private class ControlHarness {
                     getSystemStatusUseUseCase = GetSystemStatusUseUseCase(log.subscribable()),
                     executeCommandUseCase = ExecuteWaterCommandUseCase(
                         object : CommandExecutable<String> {
-                            override fun execute(i: String) = Unit
+                            override suspend fun execute(i: String) = Unit
                         }
                     ),
                     mapper = DeviceStatusMapper()

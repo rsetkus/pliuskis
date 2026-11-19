@@ -2,7 +2,6 @@ package lt.setkus.pliuskis.feature.devices
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,7 +13,6 @@ import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -25,7 +23,6 @@ import lt.setkus.pliuskis.core.devicelist.ObserveDevicesUseCase
 import lt.setkus.pliuskis.feature.devices.DevicesListScreenState.Error
 import lt.setkus.pliuskis.feature.devices.DevicesListScreenState.Loading
 import lt.setkus.pliuskis.feature.devices.DevicesListScreenState.Success
-import java.util.concurrent.atomic.AtomicBoolean
 
 private const val STOP_MILLIS = 5_000L
 private const val EMPTY_LIST_TIMEOUT_MILLIS = 3_000L
@@ -39,14 +36,13 @@ class DevicesViewModel(
     private val connect: ConnectUseCase,
     private val observeDevices: ObserveDevicesUseCase,
     private val mapper: (Device) -> DeviceListItem,
-    private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
 
     /** Bumped by [retry]; each new value restarts the connect-then-discover attempt. */
     private val attempts = MutableStateFlow(0)
 
-    /** True while a connect call is running, so repeated retries can't queue more blocking connects. */
-    private val connecting = AtomicBoolean(false)
+    /** True while a connect call is running, so repeated retries can't start more connects. */
+    private val connecting = MutableStateFlow(false)
 
     val devices: StateFlow<DevicesListScreenState> = channelFlow {
         attempts.collectLatest {
@@ -67,12 +63,13 @@ class DevicesViewModel(
 
     private fun connectThenDiscover(): Flow<DevicesListScreenState> = flow {
         emit(Loading)
-        connecting.set(true)
-        // The connect call blocks, so it runs on ioDispatcher. Discovery starts only once it succeeds.
+        connecting.value = true
+        // The connect call suspends without blocking, so it runs on the caller's dispatcher. Discovery starts only
+        // once it succeeds.
         val connection = try {
-            connect(Unit).flowOn(ioDispatcher).first()
+            connect(Unit).first()
         } finally {
-            connecting.set(false)
+            connecting.value = false
         }
         emitAll(
             connection.fold(

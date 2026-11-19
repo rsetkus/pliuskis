@@ -6,8 +6,6 @@ import arrow.core.right
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
-import io.mockk.every
-import io.mockk.mockk
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import lt.setkus.pliuskis.core.devicelist.DeviceEvent.Availability
@@ -21,11 +19,8 @@ private fun device(deviceId: String, name: String, online: Boolean) =
 
 class ObserveDevicesUseCaseTest : FunSpec({
 
-    fun useCaseFor(vararg events: DeviceEvent): ObserveDevicesUseCase {
-        val subscribable = mockk<DeviceSubscribable>()
-        every { subscribable.subscribeDevices() } returns flowOf(*events)
-        return ObserveDevicesUseCase(subscribable)
-    }
+    fun useCaseFor(vararg events: DeviceEvent): ObserveDevicesUseCase =
+        ObserveDevicesUseCase(FakeDeviceSubscribable(flowOf(*events)))
 
     test("""
         GIVEN a device's retained info and online availability
@@ -123,8 +118,7 @@ class ObserveDevicesUseCaseTest : FunSpec({
         WHEN devices are observed
         THEN should emit the error
     """) {
-        val subscribable = mockk<DeviceSubscribable>()
-        every { subscribable.subscribeDevices() } returns flow { throw IllegalStateException("disconnected") }
+        val subscribable = FakeDeviceSubscribable(flow { throw IllegalStateException("disconnected") })
         ObserveDevicesUseCase(subscribable)(Unit).test {
             awaitItem().shouldBeInstanceOf<Either.Left<Throwable>>()
             awaitComplete()

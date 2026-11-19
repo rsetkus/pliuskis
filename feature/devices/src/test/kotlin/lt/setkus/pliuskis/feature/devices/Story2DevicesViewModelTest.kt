@@ -7,21 +7,17 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import app.cash.turbine.test
 import com.hivemq.client.mqtt.MqttClientState
 import com.hivemq.client.mqtt.exceptions.MqttClientStateException
+import com.hivemq.client.mqtt.mqtt3.Mqtt3AsyncClient
 import com.hivemq.client.mqtt.mqtt3.Mqtt3BlockingClient
 import com.hivemq.client.mqtt.mqtt3.Mqtt3Client
 import com.hivemq.client.mqtt.mqtt3.Mqtt3ClientConfig
+import com.hivemq.client.mqtt.mqtt3.Mqtt3RxClient
 import io.kotest.core.spec.style.FunSpec
-import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
-import io.kotest.matchers.types.shouldBeSameInstanceAs
-import io.mockk.every
-import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -47,15 +43,8 @@ import lt.setkus.pliuskis.feature.devices.DevicesListScreenState.Error
 import lt.setkus.pliuskis.feature.devices.DevicesListScreenState.Loading
 import lt.setkus.pliuskis.feature.devices.DevicesListScreenState.Success
 import java.io.IOException
-import java.util.concurrent.Callable
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 
-private const val IO_THREAD_NAME = "story2-io"
 private const val EMPTY_LIST_TIMEOUT_MILLIS = 3_000L
-private const val IO_SHUTDOWN_TIMEOUT_SECONDS = 5L
 
 private fun infoJson(deviceId: String, name: String) =
     """{"name":"$name","deviceId":"$deviceId","type":"plant"}"""
@@ -64,10 +53,10 @@ private fun basilItem() =
     fromDomainModel(Device(DeviceDomainModel("Basil", "a", DeviceType.PLANT), online = false))
 
 /** Connect source that records the thread it ran on; [onConnect] decides the outcome. */
-private class FakeConnectable(private val onConnect: () -> String = { "CONNECTED" }) : Connectable {
+private class FakeConnectable(private val onConnect: suspend () -> String = { "CONNECTED" }) : Connectable {
     val connected = CompletableDeferred<Thread>()
 
-    override fun connect(): String {
+    override suspend fun connect(): String {
         connected.complete(Thread.currentThread())
         return onConnect()
     }
@@ -92,7 +81,6 @@ private class ViewModelHarness(val dispatcher: TestDispatcher) {
     fun devicesViewModel(
         connectable: Connectable,
         subscribable: DeviceSubscribable,
-        ioDispatcher: CoroutineDispatcher,
     ): DevicesViewModel {
         val factory = viewModelFactory {
             initializer {
@@ -100,7 +88,6 @@ private class ViewModelHarness(val dispatcher: TestDispatcher) {
                     connect = ConnectUseCase(connectable),
                     observeDevices = ObserveDevicesUseCase(subscribable),
                     mapper = ::fromDomainModel,
-                    ioDispatcher = ioDispatcher,
                 )
             }
         }
@@ -111,27 +98,21 @@ private class ViewModelHarness(val dispatcher: TestDispatcher) {
     fun clear() = store.clear()
 }
 
-/** HiveMQ client that is already connected: the blocking connect throws, as the real client does. */
-private fun alreadyConnectedClient(): Mqtt3Client {
-    val blocking = mockk<Mqtt3BlockingClient>(relaxed = true)
-    every { blocking.connect() } throws MqttClientStateException("MQTT client is already connected or connecting.")
+/**
+ * HiveMQ client that is already connected. As with the real client, a second blocking connect fails with
+ * [MqttClientStateException]; here the blocking view itself throws it, so any connect attempt fails the same way.
+ */
+private class AlreadyConnectedMqtt3Client : Mqtt3Client {
+    override fun getState(): MqttClientState = MqttClientState.CONNECTED
 
-    val config = mockk<Mqtt3ClientConfig>(relaxed = true)
-    every { config.state } returns MqttClientState.CONNECTED
+    override fun toBlocking(): Mqtt3BlockingClient =
+        throw MqttClientStateException("MQTT client is already connected or connecting.")
 
-    val client = mockk<Mqtt3Client>(relaxed = true)
-    every { client.config } returns config
-    every { client.state } returns MqttClientState.CONNECTED
-    every { client.toBlocking() } returns blocking
-    return client
-}
+    override fun getConfig(): Mqtt3ClientConfig = error("config is not used by the connect path")
 
-private fun ioExecutor(): ExecutorService = Executors.newSingleThreadExecutor { Thread(it, IO_THREAD_NAME) }
+    override fun toRx(): Mqtt3RxClient = error("the Rx client is not used by the connect path")
 
-/** Lets blocked I/O work finish while Dispatchers.Main is still the test dispatcher. */
-private fun ExecutorService.shutdownAndWait() {
-    shutdown()
-    awaitTermination(IO_SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS).shouldBeTrue()
+    override fun toAsync(): Mqtt3AsyncClient = error("the async client is not used by the connect path")
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -154,7 +135,7 @@ private fun runViewModelTest(block: suspend TestScope.(ViewModelHarness) -> Unit
 
 /**
  * STORY-2: DevicesViewModel connects then discovers; app launch no longer connects.
- * Covers AC4, AC5, AC6, AC8, AC9, AC10, AC11.
+ * Covers AC4, AC5, AC6, AC8, AC9, AC10.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class Story2DevicesViewModelTest : FunSpec({
@@ -166,7 +147,7 @@ class Story2DevicesViewModelTest : FunSpec({
     test("testStory2_connectSucceedsThenDevicesShowAsSuccess") {
         runViewModelTest { harness ->
             val subscribable = FakeDeviceSubscribable(flowOf(DeviceEvent.Info("a", infoJson("a", "Basil"))))
-            val target = harness.devicesViewModel(FakeConnectable(), subscribable, harness.dispatcher)
+            val target = harness.devicesViewModel(FakeConnectable(), subscribable)
 
             target.devices.test {
                 awaitItem() shouldBe Loading
@@ -182,15 +163,14 @@ class Story2DevicesViewModelTest : FunSpec({
     // THEN the state should stay Loading and discovery should not be subscribed
     test("testStory2_pendingConnectKeepsLoadingWithoutSubscribing") {
         runViewModelTest { harness ->
-            val connectGate = CountDownLatch(1)
-            val io = ioExecutor()
+            val connectGate = CompletableDeferred<Unit>()
             try {
                 val connectable = FakeConnectable {
                     connectGate.await()
                     "CONNECTED"
                 }
                 val subscribable = FakeDeviceSubscribable(flowOf(DeviceEvent.Info("a", infoJson("a", "Basil"))))
-                val target = harness.devicesViewModel(connectable, subscribable, io.asCoroutineDispatcher())
+                val target = harness.devicesViewModel(connectable, subscribable)
 
                 target.devices.test {
                     awaitItem() shouldBe Loading
@@ -202,8 +182,7 @@ class Story2DevicesViewModelTest : FunSpec({
                     cancelAndIgnoreRemainingEvents()
                 }
             } finally {
-                connectGate.countDown()
-                io.shutdownAndWait()
+                connectGate.complete(Unit)
             }
         }
     }
@@ -216,7 +195,7 @@ class Story2DevicesViewModelTest : FunSpec({
         runViewModelTest { harness ->
             val connectable = FakeConnectable { throw IOException("offline") }
             val subscribable = FakeDeviceSubscribable(flowOf(DeviceEvent.Info("a", infoJson("a", "Basil"))))
-            val target = harness.devicesViewModel(connectable, subscribable, harness.dispatcher)
+            val target = harness.devicesViewModel(connectable, subscribable)
 
             target.devices.test {
                 awaitItem() shouldBe Loading
@@ -236,9 +215,9 @@ class Story2DevicesViewModelTest : FunSpec({
     // THEN should emit Success with those devices, not Error
     test("testStory2_alreadyConnectedClientStillShowsDevices") {
         runViewModelTest { harness ->
-            val connectable = ConnectMqttSource(HiveMqttClientManager(alreadyConnectedClient()))
+            val connectable = ConnectMqttSource(HiveMqttClientManager(AlreadyConnectedMqtt3Client()))
             val subscribable = FakeDeviceSubscribable(flowOf(DeviceEvent.Info("a", infoJson("a", "Basil"))))
-            val target = harness.devicesViewModel(connectable, subscribable, harness.dispatcher)
+            val target = harness.devicesViewModel(connectable, subscribable)
 
             target.devices.test {
                 awaitItem() shouldBe Loading
@@ -255,7 +234,7 @@ class Story2DevicesViewModelTest : FunSpec({
     test("testStory2_subscriptionFailureShowsError") {
         runViewModelTest { harness ->
             val subscribable = FakeDeviceSubscribable(flow { throw IllegalStateException("subscribe failed") })
-            val target = harness.devicesViewModel(FakeConnectable(), subscribable, harness.dispatcher)
+            val target = harness.devicesViewModel(FakeConnectable(), subscribable)
 
             target.devices.test {
                 awaitItem() shouldBe Loading
@@ -272,7 +251,7 @@ class Story2DevicesViewModelTest : FunSpec({
     test("testStory2_noDevicesWithinTimeoutShowsEmptyList") {
         runViewModelTest { harness ->
             val subscribable = FakeDeviceSubscribable(flow { awaitCancellation() })
-            val target = harness.devicesViewModel(FakeConnectable(), subscribable, harness.dispatcher)
+            val target = harness.devicesViewModel(FakeConnectable(), subscribable)
 
             target.devices.test {
                 awaitItem() shouldBe Loading
@@ -283,30 +262,6 @@ class Story2DevicesViewModelTest : FunSpec({
                 testScheduler.runCurrent()
                 awaitItem() shouldBe Success(emptyList())
                 cancelAndIgnoreRemainingEvents()
-            }
-        }
-    }
-
-    // AC11
-    // GIVEN a DevicesViewModel built with an injected background dispatcher
-    // WHEN it connects
-    // THEN the connect call should run on that dispatcher's thread and not on Dispatchers.Main
-    test("testStory2_connectRunsOnInjectedBackgroundDispatcher") {
-        runViewModelTest { harness ->
-            val io = ioExecutor()
-            try {
-                val ioThread = io.submit(Callable { Thread.currentThread() }).get()
-                val connectable = FakeConnectable()
-                val subscribable = FakeDeviceSubscribable(flow { awaitCancellation() })
-                val target = harness.devicesViewModel(connectable, subscribable, io.asCoroutineDispatcher())
-
-                target.devices.test {
-                    awaitItem() shouldBe Loading
-                    connectable.connected.await() shouldBeSameInstanceAs ioThread
-                    cancelAndIgnoreRemainingEvents()
-                }
-            } finally {
-                io.shutdownAndWait()
             }
         }
     }

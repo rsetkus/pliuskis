@@ -183,11 +183,11 @@ sequenceDiagram
     A->>B: subscribe devices/+/info, devices/+/availability
     B-->>A: retained info + online (device list)
 
-    A->>B: devices/basil/status {"applicationId":"android-debug-client"}
+    A->>B: devices/basil/status {"applicationId":"{applicationId}"}
     B->>D: status request
-    D->>B: application/android-debug-client/basil/status {humidity, waterLevel, timestamp}
+    D->>B: application/{applicationId}/basil/status {humidity, waterLevel, timestamp}
     Note right of A: May arrive before the app subscribes,<br/>so it can be lost
-    A->>B: subscribe application/android-debug-client/basil/status
+    A->>B: subscribe application/{applicationId}/basil/status
     loop every 5 s, for 10 min after the last request
         D->>B: status (plant keeps drying)
         B-->>A: status (control screen)
@@ -318,8 +318,10 @@ as the app. Keep them in step, so the MQTT client and the JSON format behave exa
 - **Ghost devices.** Discovery is retained, and the broker persists it in the `broker-data` volume. A device you remove
   from compose stays listed as offline. Clear it with `docker compose down -v`, or for a single device with
   `mosquitto_pub -r -n -t devices/<id>/info` and `mosquitto_pub -r -n -t devices/<id>/availability`.
-- **The app's MQTT client id is fixed** (`android-debug-client` in debug builds). Two app instances with the same id on
-  one broker keep disconnecting each other.
+- **Each app install has its own MQTT client id.** The app generates a random id (23 letters and digits) on first
+  launch and keeps it until the app's data is cleared or the app is reinstalled, so several phones or emulators can
+  share one broker. The id is the `{applicationId}` in the status topics above; `mosquitto_sub -t 'application/#' -v` shows
+  it.
 - **The smoke test waters `basil`,** which uses up its water. `docker compose restart basil` refills it.
 - **The remote broker has no ACLs.** Anyone with the password can publish to any topic, including other devices'
   topics. That is fine for staging; don't reuse the setup for production.

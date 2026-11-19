@@ -1,8 +1,6 @@
 package lt.setkus.feature.control
 
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flowOn
 import lt.setkus.pliuskis.core.connect.ConnectUseCase
 import lt.setkus.pliuskis.core.systemstate.SystemState
 import org.koin.core.module.dsl.viewModel
@@ -13,8 +11,8 @@ val controlModule = module {
         val connectUseCase: ConnectUseCase = get()
         ControlViewModel(
             savedStateHandle = get(),
-            // The HiveMQ connect call blocks, so it runs on the IO dispatcher.
-            connect = { connectUseCase(Unit).flowOn(Dispatchers.IO).first() },
+            // The connect call suspends without blocking, so it is safe on the main thread.
+            connect = { connectUseCase(Unit).first() },
             systemStatusUseCase = get(),
             getSystemStatusUseUseCase = get(),
             executeCommandUseCase = get(),

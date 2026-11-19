@@ -1,45 +1,30 @@
 package lt.setkus.pliuskis.data.mqttclient
 
-import android.content.Context
 import com.hivemq.client.mqtt.MqttClient
 import com.hivemq.client.mqtt.MqttClientSslConfig
-import lt.setkus.pliuskis.data.BuildConfig
-import java.io.BufferedInputStream
-import java.security.KeyStore
-import javax.net.ssl.KeyManagerFactory
+import com.hivemq.client.mqtt.mqtt3.Mqtt3Client
 
-private const val SERVER_PORT = 1883
-fun getDebugMqttClient() = MqttClient.builder()
-    .identifier("android-debug-client")
-    .serverHost(BuildConfig.DEBUG_BROKER_HOST)
-    .serverPort(SERVER_PORT)
-    .automaticReconnectWithDefaultConfig()
-    .useMqttVersion3()
-    .build()
-
-fun getProductionMqttClient(context: Context) = MqttClient.builder()
-    .identifier("android-production-client")
-    .serverHost(BuildConfig.AMAZON_IOT_ENDPOINT)
-    .automaticReconnectWithDefaultConfig()
-    .useMqttVersion3()
-    .sslConfig(sslConfig(context))
-    .build()
-
-private fun sslConfig(context: Context) = MqttClientSslConfig.builder()
-    .keyManagerFactory(getKeyManagerFactory(context))
-    .build()
-
-private fun getKeyManagerFactory(context: Context): KeyManagerFactory {
-    val keyStore = createKeyStore(context)
-    val keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm())
-    keyManagerFactory.init(keyStore, BuildConfig.KEYSTORE_PASSWORD.toCharArray())
-    return keyManagerFactory
+/**
+ * Builds the HiveMQ client for [settings]. [tlsSetup] is required for [TlsMode.CLIENT_CERTIFICATE] and ignored for
+ * [TlsMode.NONE]. Building the client does not connect.
+ */
+fun createMqttClient(settings: MqttSettings, tlsSetup: MqttTlsSetup?): Mqtt3Client {
+    val builder = MqttClient.builder()
+        .identifier(settings.clientId)
+        .serverHost(settings.host)
+        .serverPort(settings.port)
+        .automaticReconnectWithDefaultConfig()
+    val secureBuilder = when (settings.tlsMode) {
+        TlsMode.NONE -> builder
+        TlsMode.CLIENT_CERTIFICATE -> {
+            val setup = requireNotNull(tlsSetup) { "TlsMode.CLIENT_CERTIFICATE needs an MqttTlsSetup in Koin" }
+            builder.sslConfig(sslConfig(setup))
+        }
+    }
+    return secureBuilder.useMqttVersion3().build()
 }
 
-private fun createKeyStore(context: Context): KeyStore {
-    val stream = BufferedInputStream(context.assets.open("legacy-keystore.p12"))
-    val keyStore = KeyStore.getInstance("PKCS12")
-    keyStore.load(stream, BuildConfig.KEYSTORE_PASSWORD.toCharArray())
-    stream.close()
-    return keyStore
-}
+private fun sslConfig(tlsSetup: MqttTlsSetup): MqttClientSslConfig =
+    MqttClientSslConfig.builder()
+        .keyManagerFactory(tlsSetup.keyManagerFactory())
+        .build()

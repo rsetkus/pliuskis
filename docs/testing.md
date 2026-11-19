@@ -145,6 +145,33 @@ that start with a lowercase letter.
   behaviour tests of every module. Run the same command locally, with an emulator or a connected device.
 
 
+## Shared (KMP) module tests
+
+A shared module applies `pliuskis.kmp.library` (`build-logic/.../KmpLibraryConventionPlugin.kt`) and nothing else. The
+plugin gives it the targets Android, `iosArm64` and `iosSimulatorArm64`, the Android host tests (`withHostTest`), the
+test dependencies below, and ktlint and detekt over `src/commonMain`, `src/androidMain`, `src/iosMain` and the test
+source sets. `core/kmpsample` is the smallest example.
+
+- **Stack:** Kotest `FunSpec` with Kotest assertions, the same as the Android modules, plus Turbine for Flows and
+  kotlinx-coroutines-test (`runTest`). The plugin adds all four to `commonTest`. Tests that will run on iOS don't use
+  MockK; MockK is JVM-only. Write a fake instead.
+- **Why Kotest:** a Kotest `FunSpec` in `commonTest` runs on both targets. On iOS, the Kotest Gradle plugin (`io.kotest`)
+  and KSP (`com.google.devtools.ksp`) generate the test entry point. The Android host test runs it on the JUnit
+  Platform through `kotest-runner-junit5`. So the kotlin.test runner isn't needed. The Kotest docs say the native
+  engine has fewer features than the JVM engine; for example, annotation-based configuration doesn't work on iOS.
+- **Where:** in `src/commonTest/kotlin`. Use `src/androidHostTest/kotlin` or `src/iosTest/kotlin` only for tests of
+  platform `actual` code. Test names follow the story prefix: class `Story<N><Subject>Test`, tests `testStory<N>_...`.
+- **Commands:**
+  - Android host: `./gradlew <module>:testAndroidHostTest`
+  - iOS simulator (macOS with Xcode only): `./gradlew <module>:iosSimulatorArm64Test`
+  - Both: `./gradlew <module>:allTests`. The reports are in `<module>/build/test-results/testAndroidHostTest` and
+    `<module>/build/test-results/iosSimulatorArm64Test`.
+- **CI:** the CI runners are Linux, and Kotlin/Native can't build or run iOS targets there, so it skips them. iOS
+  tests run only on macOS. A KMP module has no `test` task, so `./gradlew test` doesn't run its Android host tests;
+  `./gradlew allTests` (or `check`) does.
+- **Generated sources:** KSP writes the Kotest entry points to `build/generated/ksp`. The plugin keeps `build/` out
+  of ktlint, so generated code isn't linted.
+
 ## What kinds of tests to write
 
 - **Unit:** small pure functions in isolation (front-matter parsing, slug derivation, date sort).

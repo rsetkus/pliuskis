@@ -2,6 +2,7 @@ package lt.setkus.pliuskis
 
 import android.app.Application
 import lt.setkus.feature.control.controlModule
+import lt.setkus.pliuskis.broker.brokerModule
 import lt.setkus.pliuskis.core.di.coreModule
 import lt.setkus.pliuskis.data.di.dataModule
 import lt.setkus.pliuskis.feature.devices.devicesModule
@@ -21,7 +22,7 @@ class MyApplication : Application() {
         startKoin {
             androidLogger()
             androidContext(this@MyApplication)
-            modules(dataModule, coreModule, mainModule, devicesModule, controlModule)
+            modules(brokerModule, dataModule, coreModule, mainModule, devicesModule, controlModule)
         }
     }
 }

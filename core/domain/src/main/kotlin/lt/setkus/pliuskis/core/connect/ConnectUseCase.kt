@@ -12,7 +12,7 @@ class ConnectUseCase(
     override fun invoke(param: Unit): Flow<Either<Throwable, String>> =
         flow { emit(tryConnect()) }
 
-    private fun tryConnect(): Either<Throwable, String> =
+    private suspend fun tryConnect(): Either<Throwable, String> =
         Either.catch {
             connectSource.connect()
         }.mapLeft { it }

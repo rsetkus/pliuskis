@@ -1,5 +1,5 @@
 # Device discovery
-**Last verified**: 2026-10-15
+**Last verified**: 2026-11-19
 **Scope**: how the app finds IoT devices and tracks whether they are online (device list screen and the device firmware's MQTT birth/Last Will).
 
 ## Summary
@@ -19,10 +19,12 @@ live changes. This is the same pattern as Home Assistant MQTT discovery and the 
 | `devices/{deviceId}/availability` | yes | 1 | device (`online` after connect, `offline` on clean shutdown); broker (`offline` Last Will) | `online` / `offline` |
 
 1. App launch does not connect. When the device list screen collects its state, `DevicesViewModel` connects the shared
-   HiveMQ client (`ConnectUseCase`) on an I/O dispatcher, because the HiveMQ connect call blocks. The screen shows
-   `Loading` meanwhile. An already connected client returns at once. A client that is still connecting or reconnecting
-   is waited on (up to 10 s, without a second connect) and counts as a failure if it doesn't connect in time. The
-   client reconnects automatically and re-subscribes, after which the broker replays the retained snapshot again.
+   HiveMQ client (`ConnectUseCase`). `IotManager.connect()` is a non-blocking `suspend` function, so the ViewModel
+   calls it from `viewModelScope` without switching dispatcher; `HiveMqttClientManager` moves HiveMQ's own blocking
+   connect call to `Dispatchers.IO` itself. The screen shows `Loading` meanwhile. An already connected client returns
+   at once. A client that is still connecting or reconnecting is waited on (up to 10 s, with `withTimeoutOrNull` and
+   `delay`, without a second connect) and counts as a failure if it doesn't connect in time. The client reconnects
+   automatically and re-subscribes, after which the broker replays the retained snapshot again.
 2. Only after the connection succeeds does `DevicesViewModel` collect `ObserveDevicesUseCase`. The data layer
    (`SubscribeDeviceTopics`) subscribes to both wildcard filters, takes `deviceId` from the topic, and emits
    `DeviceEvent.Info` / `DeviceEvent.Availability`.
@@ -38,17 +40,22 @@ Error path: a malformed info payload is logged and skipped, and the other device
 itself fails. A failed connection never subscribes. On `Error`, the device list shows the generic `ErrorScreen` from `core/designsystem`
 with texts from string resources and a Retry button; the exception is logged, never shown. Retry runs
 connect-then-discover again (`DevicesViewModel.retry`) and is ignored while a connect is still running, so repeated
-taps can't queue extra blocking connects.
+taps start only one connect.
 
 ## Key files
 - Screen: `feature/devices/.../DeviceListScreen.kt`, `DevicesViewModel.kt`, `DeviceListItem.kt`
 - Error UI: `core/designsystem/.../component/ErrorScreen.kt`
 - Use case: `core/domain/.../devicelist/ObserveDevicesUseCase.kt` (+ `DeviceEvent`, `Device`, `DeviceDomainModel`)
 - Connect: `core/domain/.../connect/ConnectUseCase.kt`, `core/data/.../ConnectMqttSource.kt` (a rejected CONNACK throws)
-- Data: `core/data/.../devices/SubscribeDeviceTopics.kt`, `core/data/.../mqttclient/HiveMqttClientManager.kt`, `MqttClientProducer.kt`
+- Data: `core/data/.../devices/SubscribeDeviceTopics.kt`, `core/data/.../mqttclient/HiveMqttClientManager.kt`, `MqttClientProducer.kt` (`createMqttClient`)
+- Broker settings: `app/.../broker/BrokerModule.kt` (debug or release `MqttSettings` from `BuildConfig`), `AssetKeystoreTlsSetup.kt`; `core/data/.../mqttclient/MqttSettings.kt`, `MqttTlsSetup.kt`
+- Client ID: `core/data/.../clientid/ClientIdProvider.kt` (+ `ClientIdStore`, `SharedPreferencesClientIdStore`)
 - Firmware: `picow-pliuskis/main.py` (`mqtt_connect`, `connect_with_backoff`, ping in the main loop)
 
 ## Gotchas & decisions
+- **`IotManager` is the contract for every platform client.** Its KDoc states it: `connect()` and `publishString()`
+  suspend and never block the caller; `connect()` is safe when already connected or connecting; subscriptions survive
+  a reconnect. Status requests and the water command publish through the HiveMQ async API.
 - **Each screen that uses MQTT connects for itself.** Nothing connects at app launch, and the splash screen doesn't wait
   for MQTT. `DevicesViewModel` connects before discovery, and `ControlViewModel` connects before it requests or
   subscribes to status. The control screen can't rely on the device list: after process death, navigation restores
@@ -64,6 +71,12 @@ taps can't queue extra blocking connects.
   `keepalive / 2` seconds. Without that, the broker drops an idle device after 1.5 × keepalive and marks it offline.
 - **Offline is reported after up to 1.5 × keepalive** (90 s with the firmware's 60 s), not instantly, for losses that
   don't close the TCP connection.
+- **Each app install has its own MQTT client ID.** On first launch `ClientIdProvider` generates a random ID of 23
+  characters from `0-9a-zA-Z` and stores it in SharedPreferences; later launches reuse it, and a missing or invalid
+  stored value is replaced by a new ID. Brokers drop a client when another connects with the same ID, so a shared ID
+  would make two phones disconnect each other. The ID is also the `applicationId` in the status topic
+  `application/{applicationId}/{deviceId}/status`, so the firmware treats it as an opaque string. Clearing the app's
+  data or reinstalling gives a new ID.
 - **The topic is the source of truth for `deviceId`.** The payload's `deviceId` is overwritten with the topic's, because
   command and status topics are built from it.
 - **Removing a device** means publishing an empty retained payload to its `info` topic
@@ -72,4 +85,6 @@ taps can't queue extra blocking connects.
   leaks a callback. Two collectors of the same topic filter at once would unsubscribe each other.
 - **AWS IoT Core** supports retained messages and Last Will, but the device policy needs `iot:RetainPublish`, and the
   app policy needs `iot:Subscribe` on the `devices/+/…` topic filters plus `iot:Receive` on the matching topics.
+  Because the client ID differs per install, the app policy must also allow `iot:Connect` for any client ID and the
+  `application/{applicationId}/…` status topics for any `applicationId`.
 - Every device is visible to every app; there is no per-user ownership yet.

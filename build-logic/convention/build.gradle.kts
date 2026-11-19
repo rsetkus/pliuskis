@@ -22,6 +22,7 @@ dependencies {
     compileOnly(libs.android.gradlePlugin)
     compileOnly(libs.android.tools.common)
     compileOnly(libs.kotlin.gradlePlugin)
+    compileOnly(libs.detekt.gradlePlugin)
 }
 
 tasks {
@@ -56,6 +57,10 @@ gradlePlugin {
         register("codeQuality") {
             id = "pliuskis.code.quality"
             implementationClass = "CodeQualityConventionPlugin"
+        }
+        register("kmpLibrary") {
+            id = "pliuskis.kmp.library"
+            implementationClass = "KmpLibraryConventionPlugin"
         }
     }
 }

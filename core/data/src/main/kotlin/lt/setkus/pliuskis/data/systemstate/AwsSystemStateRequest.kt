@@ -8,7 +8,7 @@ import lt.setkus.pliuskis.data.IotManager
 class AwsSystemStateRequest(
     private val manager: IotManager
 ) : SystemStateRequestable {
-    override fun requestSystemState(deviceId: String) {
+    override suspend fun requestSystemState(deviceId: String) {
         return manager.publishString(
             Json.encodeToString(SystemUpdateMessageModel(manager.getClientId())),
             "devices/$deviceId/status"

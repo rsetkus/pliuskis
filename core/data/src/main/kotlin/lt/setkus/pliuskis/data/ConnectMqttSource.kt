@@ -8,7 +8,7 @@ class ConnectMqttSource(
 ) : Connectable {
 
     /** Throws when the connection isn't established (rejected, or a pending attempt timed out). */
-    override fun connect(): String {
+    override suspend fun connect(): String {
         val state = manager.connect()
         check(state == MqttConnectionState.CONNECTED) { "MQTT connection not established: $state" }
         return state.toString()
