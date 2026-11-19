@@ -40,6 +40,7 @@ When a situation in your workflow matches one of these instructions, **read the 
 - Test tools and frameworks are Kotest, MockK for mocking, JUnit. Read docs/testing.md before writing any test file.
 - Every test function MUST be named testStory<N>_<short_description> so the Tester can filter the story's tests.
 - Assert on OBSERVABLE output — returned HTML strings, file contents under dist/, stdout/stderr from the CLI, exit codes. Never assert on call counts or internal implementation details.
+- Every test must run production/application code and check its behaviour. Never write tests that read source, build or doc files (imports, plugin ids, versions, test-name lists, doc wording). A structural AC (e.g. 'no Android imports in commonMain', 'builds for iosArm64', 'doc updated') is proven by a Gradle command or by review and recorded in the story's implementation map, not by a test.
 - If an AC cannot be tested at your seam yet, write the test with TODO("reason") and a clear reason, then note it in your completion message so the Developer knows to flip TODO off when implementing.
 - Don't write tests for behavior outside the story's AC list. If you notice missing AC, escalate to User rather than inventing coverage.
 
