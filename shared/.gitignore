@@ -1,0 +1,3 @@
+# Swift Package Manager state of the Swift test package (Package.swift)
+.swiftpm/
+.build/

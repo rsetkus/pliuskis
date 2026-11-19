@@ -24,6 +24,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -35,15 +36,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import lt.setkus.pliuskis.core.designsystem.component.LoadingWheel
+import lt.setkus.pliuskis.core.presentation.control.ControlUiState
+import lt.setkus.pliuskis.core.presentation.control.ControlViewModel
+import lt.setkus.pliuskis.core.presentation.control.DeviceStatus
 import lt.setkus.pliuskis.feature.control.R
 import org.koin.androidx.compose.koinViewModel
+import org.koin.core.parameter.parametersOf
 import timber.log.Timber
 
 @Composable
 internal fun ControlRoute(
+    deviceId: String,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: ControlViewModel = koinViewModel(),
+    viewModel: ControlViewModel = koinViewModel { parametersOf(deviceId) },
 ) {
     val controlUiState: ControlUiState by viewModel.controlUiState.collectAsStateWithLifecycle()
 
@@ -61,6 +67,7 @@ internal fun ControlScreen(
     onBackClick: () -> Unit,
     onWaterButtonClick: () -> Unit,
     modifier: Modifier = Modifier,
+    statusText: (DeviceStatus) -> DeviceStatusText = remember { DeviceStatusTextMapper() },
 ) {
     when (controlUiState) {
         is ControlUiState.Loading -> LoadingControlScreen(modifier)
@@ -69,7 +76,10 @@ internal fun ControlScreen(
         ) {
             Timber.d("Error: ${controlUiState.message}")
         }
-        is ControlUiState.Success -> ControlDeviceStatus(controlUiState.data, onWaterButtonClick)
+        is ControlUiState.Success -> ControlDeviceStatus(
+            remember(controlUiState.data) { statusText(controlUiState.data) },
+            onWaterButtonClick
+        )
     }
 }
 
@@ -151,7 +161,7 @@ private fun ErrorDevicesScreen(errorMessage: String, onRetry: () -> Unit) {
 
 @Composable
 internal fun ControlDeviceStatus(
-    data: DeviceStatus,
+    data: DeviceStatusText,
     onWaterButtonClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {

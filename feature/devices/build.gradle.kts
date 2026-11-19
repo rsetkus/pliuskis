@@ -20,7 +20,7 @@ android {
     }
 }
 
-// The ViewModel tests swap Dispatchers.Main with setMain/resetMain, which leaves it unusable for the rest of that
+// The ViewModel test swaps Dispatchers.Main with setMain/resetMain, which leaves it unusable for the rest of that
 // JVM, and Paparazzi snapshots then fail to render. One JVM per test class keeps the two kinds of tests apart.
 tasks.withType<Test>().configureEach {
     setForkEvery(1L)
@@ -29,6 +29,7 @@ tasks.withType<Test>().configureEach {
 dependencies {
     implementation(projects.core.domain)
     implementation(projects.core.data)
+    implementation(projects.core.presentation)
 
     implementation(libs.timber)
 

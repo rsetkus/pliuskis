@@ -1,43 +1,23 @@
 plugins {
-    alias(libs.plugins.pliuskis.android.library)
-    alias(libs.plugins.pliuskis.android.code.quality)
+    alias(libs.plugins.pliuskis.kmp.library)
+    alias(libs.plugins.kotlin.serialization)
 }
 
-android {
-    namespace = "lt.setkus.pliuskis.data"
-    defaultConfig {
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        consumerProguardFiles("consumer-rules.pro")
-    }
-
-    buildTypes {
-        release {
-            isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+kotlin {
+    sourceSets {
+        commonMain.dependencies {
+            implementation(project(":core:domain"))
+            implementation(libs.kotlinx.serialization.json)
+        }
+        androidMain.dependencies {
+            // AndroidConnectivityManager uses androidx.core.content.getSystemService.
+            implementation(libs.androidx.core.ktx)
+            // androidDataModule uses androidContext().
+            implementation(libs.koin)
+            implementation(libs.hiveMqClient)
+        }
+        named("androidHostTest").dependencies {
+            implementation(libs.mockk)
         }
     }
-
-    // HiveMQ brings Netty jars that each ship these files; the androidTest APK can't hold duplicates.
-    packaging {
-        resources {
-            excludes += listOf("META-INF/INDEX.LIST", "META-INF/io.netty.versions.properties")
-        }
-    }
-}
-
-dependencies {
-
-    implementation(project(":core:domain"))
-
-    implementation(libs.hiveMqClient)
-
-    testImplementation(libs.junit)
-    testImplementation(libs.mockk)
-    testImplementation(libs.kotlinx.coroutines.test)
-    testImplementation(libs.kotest.runner.junit5)
-    testImplementation(libs.kotest.assertions.core)
-    testImplementation(libs.turbine)
 }

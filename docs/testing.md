@@ -147,10 +147,11 @@ that start with a lowercase letter.
 
 ## Shared (KMP) module tests
 
-A shared module applies `pliuskis.kmp.library` (`build-logic/.../KmpLibraryConventionPlugin.kt`) and nothing else. The
-plugin gives it the targets Android, `iosArm64` and `iosSimulatorArm64`, the Android host tests (`withHostTest`), the
-test dependencies below, and ktlint and detekt over `src/commonMain`, `src/androidMain`, `src/iosMain` and the test
-source sets. `core/kmpsample` is the smallest example.
+A shared module applies `pliuskis.kmp.library` (`build-logic/.../KmpLibraryConventionPlugin.kt`), plus any Kotlin
+compiler plugin its code needs, such as `kotlin.serialization`. The plugin gives it the targets Android, `iosArm64` and
+`iosSimulatorArm64`, the Android host tests (`withHostTest`), a `test` task that runs them, the test dependencies
+below, and ktlint and detekt over `src/commonMain`, `src/androidMain`, `src/iosMain` and the test source sets.
+`core/domain`, `core/data` and `core/presentation` are shared modules; `core/kmpsample` is the smallest example.
 
 - **Stack:** Kotest `FunSpec` with Kotest assertions, the same as the Android modules, plus Turbine for Flows and
   kotlinx-coroutines-test (`runTest`). The plugin adds all four to `commonTest`. Tests that will run on iOS don't use
@@ -160,17 +161,55 @@ source sets. `core/kmpsample` is the smallest example.
   Platform through `kotest-runner-junit5`. So the kotlin.test runner isn't needed. The Kotest docs say the native
   engine has fewer features than the JVM engine; for example, annotation-based configuration doesn't work on iOS.
 - **Where:** in `src/commonTest/kotlin`. Use `src/androidHostTest/kotlin` or `src/iosTest/kotlin` only for tests of
-  platform `actual` code. Test names follow the story prefix: class `Story<N><Subject>Test`, tests `testStory<N>_...`.
+  platform code (`androidMain`/`iosMain`, e.g. the HiveMQ client in `core/data`); those may use MockK on the Android
+  host, and they see the `commonTest` fakes. Test names follow the story prefix: class `Story<N><Subject>Test`, tests
+  `testStory<N>_...`. detekt treats `androidHostTest` as test code, like `src/test`.
+- **ViewModel tests** (`core/presentation`) are in `commonTest` too and run on both targets. Swap the Main dispatcher
+  with `Dispatchers.setMain(StandardTestDispatcher())` and `resetMain()` from kotlinx-coroutines-test, create the
+  ViewModel through a `ViewModelStore` with `ViewModelProvider.create(store, factory)[X::class]`, and clear the store
+  before `resetMain()`. A ViewModel test that needs the HiveMQ client stays a JVM test in the feature module
+  (`feature/devices/src/test`).
 - **Commands:**
-  - Android host: `./gradlew <module>:testAndroidHostTest`
+  - Android host: `./gradlew <module>:test` or `./gradlew <module>:testAndroidHostTest`. `--tests` works only on
+    `testAndroidHostTest` (`test` is a lifecycle task that runs it), and only with a fully qualified class name, e.g.
+    `--tests "lt.setkus.pliuskis.data.di.Story8DataKoinGraphTest"`. With Kotest, a wildcard such as `Story<N>*` finds
+    no tests, and `*.ClassName` runs every test of the module.
   - iOS simulator (macOS with Xcode only): `./gradlew <module>:iosSimulatorArm64Test`
   - Both: `./gradlew <module>:allTests`. The reports are in `<module>/build/test-results/testAndroidHostTest` and
     `<module>/build/test-results/iosSimulatorArm64Test`.
 - **CI:** the CI runners are Linux, and Kotlin/Native can't build or run iOS targets there, so it skips them. iOS
-  tests run only on macOS. A KMP module has no `test` task, so `./gradlew test` doesn't run its Android host tests;
-  `./gradlew allTests` (or `check`) does.
+  tests run only on macOS. The plugin's `test` task depends on `testAndroidHostTest`, so CI's `./gradlew test` runs
+  the Android host tests of every shared module, as it runs the unit tests of the Android modules.
 - **Generated sources:** KSP writes the Kotest entry points to `build/generated/ksp`. The plugin keeps `build/` out
   of ktlint, so generated code isn't linted.
+
+### The `shared` module and Swift tests
+
+`shared` builds the iOS framework `Shared` and holds the Swift-facing API (`initShared`, the ViewModel factories) in
+`src/iosMain`. It is tested on two levels, both on macOS only:
+
+- **Kotlin:** `src/iosTest/kotlin` calls the API as Swift does (start the graph with `initShared`, create a ViewModel
+  through a factory, collect its state). Koin is process-wide, so each test calls `stopKoin()` afterwards. iOS has no
+  MQTT client yet; the graph binds `NotImplementedIotManager`, so connecting fails and screens end in their Error
+  state. Run: `./gradlew :shared:iosSimulatorArm64Test`.
+- **Swift:** XCTest cases in `shared/swift-test/SharedSwiftTests` run against the built XCFramework through the Swift
+  package `shared/Package.swift` (scheme `SharedSwiftTest`). Koin starts once per process, so only one Swift test may
+  call `initShared` with its own settings. Run:
+  ```bash
+  ./gradlew :shared:assembleSharedDebugXCFramework
+  cd shared
+  xcodebuild test -scheme SharedSwiftTest -destination 'platform=iOS Simulator,name=iPhone 17'
+  ```
+  Pick an installed simulator with `xcrun simctl list devices available`. The static framework needs the C++ runtime,
+  so the test target links `c++`. Swift 6 language mode needs `extension <ViewModel>: @retroactive @unchecked
+  Sendable {}` before a test awaits a ViewModel's async API.
+- **Header check:** the generated header `Shared.framework/Headers/Shared.h` must not name Koin, use cases, `Either`,
+  `IotManager` or HiveMQ types:
+  ```bash
+  for h in shared/build/XCFrameworks/debug/Shared.xcframework/*/Shared.framework/Headers/Shared.h; do
+    grep -nE 'Either|Koin|UseCase|IotManager|Hive|Mqtt3' "$h"; done   # prints nothing
+  ```
+- **CI:** none of this runs on the Linux runners; `./gradlew test` there runs the module's (empty) Android host tests.
 
 ## What kinds of tests to write
 
