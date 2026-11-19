@@ -34,22 +34,28 @@ kotlinxSerializationJson = "1.13.0"
 kotlinxDateTime = "0.8.0"
 arrow = "2.3.0.1"
 ksp = "2.3.14"
+# SKIE hooks into the Kotlin/Native compiler, and each SKIE release supports only certain Kotlin versions. Upgrade
+# SKIE together with Kotlin (`kotlin` above).
+skie = "0.10.16"
 
 [libraries]
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "androidxComposeBom" }
 android-desugarJdkLibs = { group = "com.android.tools", name = "desugar_jdk_libs", version.ref = "androidDesugarJdkLibs" }
 androidx-lifecycle-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "androidxLifecycle" }
+androidx-lifecycle-viewmodel = { group = "androidx.lifecycle", name = "lifecycle-viewmodel", version.ref = "androidxLifecycle" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "androidxCompat" }
 android-material = { group = "com.google.android.material", name = "material", version.ref = "androidMaterial" }
 androidx-tracing-ktx = { group = "androidx.tracing", name = "tracing-ktx", version.ref = "androidxTracing" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "androidxCore" }
 androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "androidxCoreSplashscreen" }
 kotlin-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android" , version.ref = "kotlinxCoroutines"}
+kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "kotlinxDateTime"}
 timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
 kermit = { group = "co.touchlab", name = "kermit", version.ref = "kermit" }
 koin = { group = "io.insert-koin", name = "koin-android", version.ref = "koin" }
+koin-core = { group = "io.insert-koin", name = "koin-core", version.ref = "koin" }
 koin-compose = { group = "io.insert-koin", name = "koin-androidx-compose",  version.ref = "koin" }
 hiveMqClient = { group = "com.hivemq", name = "hivemq-mqtt-client", version.ref = "hiveMqClient" }
 arrowCore = { group = "io.arrow-kt", name = "arrow-core", version.ref = "arrow" }
@@ -103,6 +109,7 @@ paparazzi = { id = "app.cash.paparazzi", version.ref = "paparazzi" }
 secrets = { id = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin", version.ref = "secrets" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+skie = { id = "co.touchlab.skie", version.ref = "skie" }
 
 # Plugins defined by this project
 pliuskis-android-application-compose = { id = "pliuskis.android.application.compose", version = "unspecified"}

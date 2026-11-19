@@ -8,13 +8,15 @@ import org.gradle.api.tasks.SourceTask
 import org.gradle.api.tasks.testing.Test
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.withType
+import org.gradle.language.base.plugins.LifecycleBasePlugin
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
 /**
  * A shared (Kotlin Multiplatform) library: targets Android, `iosArm64` and `iosSimulatorArm64`, runs `commonTest` on
  * the Android host (`testAndroidHostTest`) and on the iOS simulator (`iosSimulatorArm64Test`) with Kotest, and gets
- * the same ktlint and detekt checks as the Android modules.
+ * the same ktlint and detekt checks as the Android modules. Its `test` task runs the Android host tests, so
+ * `./gradlew test` covers it as it covers the Android modules.
  *
  * The namespace is derived from the module path, e.g. `:core:kmpsample` -> `lt.setkus.pliuskis.core.kmpsample`.
  */
@@ -41,6 +43,13 @@ class KmpLibraryConventionPlugin : Plugin<Project> {
             // Kotest on the Android host runs on the JUnit Platform.
             tasks.withType<Test>().configureEach {
                 useJUnitPlatform()
+            }
+
+            // A KMP module has no `test` task, so `./gradlew test` (as CI runs it) would skip its tests.
+            tasks.register(TEST_TASK) {
+                group = LifecycleBasePlugin.VERIFICATION_GROUP
+                description = "Runs the commonTest tests on the Android host, like `test` in an Android module."
+                dependsOn(HOST_TEST_TASK)
             }
 
             // ktlint lints every Kotlin source directory, including the Kotest entry points KSP generates.
@@ -89,6 +98,8 @@ class KmpLibraryConventionPlugin : Plugin<Project> {
     private companion object {
         const val NAMESPACE_ROOT = "lt.setkus.pliuskis"
         const val KTLINT_TASK_PREFIX = "runKtlint"
+        const val TEST_TASK = "test"
+        const val HOST_TEST_TASK = "testAndroidHostTest"
 
         val KMP_SOURCE_DIRS = listOf(
             "src/commonMain/kotlin",

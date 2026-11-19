@@ -15,3 +15,7 @@ local.properties
 secrets.properties
 pliuskis.env
 .mcp.json
+# Kotlin Gradle plugin caches (KMP builds create .kotlin/ and build-logic/.kotlin/)
+.kotlin/
+# Sage feature-team working files (specs, stories, progress)
+_output/

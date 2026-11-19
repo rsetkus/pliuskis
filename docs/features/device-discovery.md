@@ -1,5 +1,5 @@
 # Device discovery
-**Last verified**: 2026-11-19
+**Last verified**: 2026-11-19 (STORY-9)
 **Scope**: how the app finds IoT devices and tracks whether they are online (device list screen and the device firmware's MQTT birth/Last Will).
 
 ## Summary
@@ -33,7 +33,8 @@ live changes. This is the same pattern as Home Assistant MQTT discovery and the 
 4. `DevicesViewModel` maps the list to `DevicesListScreenState.Success`. If nothing arrives within 3 s of subscribing it
    emits an empty list, because MQTT has no "end of retained snapshot" marker. The timer starts after the connection
    succeeds, so a slow connect stays `Loading`. A device's card shows an online/offline indicator.
-5. Tapping a device navigates to `control/{deviceId}`; status and commands use that same `deviceId`.
+5. Tapping a device navigates to `control/{deviceId}`. The control route reads `deviceId` from the route and passes it
+   to `ControlViewModel` (Koin `parametersOf`); status and commands use that same `deviceId`.
 
 Error path: a malformed info payload is logged and skipped, and the other devices keep updating. The screen turns into
 `Error` when the connection fails (an exception, or a broker that rejects the connection) or when the subscription
@@ -43,7 +44,9 @@ connect-then-discover again (`DevicesViewModel.retry`) and is ignored while a co
 taps start only one connect.
 
 ## Key files
-- Screen: `feature/devices/.../DeviceListScreen.kt`, `DevicesViewModel.kt`, `DeviceListItem.kt`
+- Screen: `feature/devices/.../DeviceListScreen.kt`, `DeviceTypeIcon.kt` (device type to icon)
+- ViewModel and UI state (shared): `core/presentation/.../devices/DevicesViewModel.kt`, `DevicesListScreenState.kt`,
+  `DeviceListItem.kt`
 - Error UI: `core/designsystem/.../component/ErrorScreen.kt`
 - Use case: `core/domain/.../devicelist/ObserveDevicesUseCase.kt` (+ `DeviceEvent`, `Device`, `DeviceDomainModel`)
 - Connect: `core/domain/.../connect/ConnectUseCase.kt`, `core/data/.../ConnectMqttSource.kt` (a rejected CONNACK throws)

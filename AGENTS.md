@@ -12,15 +12,25 @@ Instructions for AI coding agents (Claude Code, Codex, Cursor, Copilot, Gemini a
 ./gradlew lint                  # Android lint
 ```
 
-Run a single test class:
+Run a single test class (in a shared KMP module, `--tests` goes on its `testAndroidHostTest` task; in an Android
+module, on `testDebugUnitTest`):
 ```bash
-./gradlew core:domain:test --tests "lt.setkus.pliuskis.core.systemstate.CommandGetSystemStateLevelUseCaseTest"
+./gradlew core:domain:testAndroidHostTest --tests "lt.setkus.pliuskis.core.systemstate.CommandGetSystemStateLevelUseCaseTest"
 ```
 
 Run tests in a specific module:
 ```bash
-./gradlew core:domain:test
+./gradlew core:domain:test       # shared KMP module: runs its Android host tests
+./gradlew core:domain:allTests   # shared KMP module: Android host and iOS simulator (macOS only)
 ./gradlew core:data:test
+```
+
+Build the iOS framework and run its tests (macOS with Xcode only):
+```bash
+./gradlew :shared:assembleSharedDebugXCFramework   # shared/build/XCFrameworks/debug/Shared.xcframework
+./gradlew :shared:iosSimulatorArm64Test            # Kotlin tests of the Swift-facing API
+# Swift tests against the XCFramework, from shared/ (list simulators: xcrun simctl list devices available):
+xcodebuild test -scheme SharedSwiftTest -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 
 ## CI
@@ -72,12 +82,18 @@ This is a Clean Architecture + MVVM Android app with Jetpack Compose UI, organiz
 ```
 app/                   — Entry point: MainActivity, Koin init, navigation host
 core/
-  domain/              — Use cases, domain models (no Android dependencies)
-  data/                — MQTT/IoT integration, network connectivity
+  domain/              — Use cases, domain models; shared KMP module (Android, iOS), no Android dependencies
+  data/                — MQTT/IoT integration, network connectivity; shared KMP module: topics, payloads and the
+                         `IotManager` contract in commonMain, the HiveMQ client and Android services in androidMain
+  presentation/        — ViewModels, UI states and status threshold logic; shared KMP module, no Compose or
+                         SavedStateHandle
   designsystem/        — Shared Material 3 Compose components and theming
-feature/
-  devices/             — Device list screen and ViewModel
-  control/             — Device control screen and ViewModel
+feature/               — Android only: Compose UI, navigation, Koin wiring of the ViewModels, Android mapping
+                         (display text, date format, icons); no ViewModel classes
+  devices/             — Device list screen
+  control/             — Device control screen
+shared/                — iOS umbrella KMP module: builds the static framework `Shared` (iosArm64, iosSimulatorArm64)
+                         with SKIE; Swift API `initShared(settings)` and the ViewModel factories (iosMain)
 build-logic/           — Gradle convention plugins (application, library, feature, compose, quality)
 ```
 
@@ -85,11 +101,20 @@ build-logic/           — Gradle convention plugins (application, library, feat
 
 **Use Cases** — every business operation is a use case implementing `BaseUseCase<T, R>`. They return `Flow<Either<Throwable, R>>` using Arrow-kt for error handling.
 
-**IoT/MQTT** — `IotManager` is the abstract interface; `HiveMqttClientManager` is the HiveMQ implementation. `app`'s `brokerModule` picks the debug or production `MqttSettings` from `BuildConfig` and passes them to `core/data` through Koin; `core/data` reads no `BuildConfig`. Device communication is message-based via MQTT topics.
+**IoT/MQTT** — `IotManager` is the abstract interface (commonMain); `HiveMqttClientManager` is the HiveMQ implementation (androidMain). iOS has no MQTT client yet: `iosDataModule` binds `NotImplementedIotManager` (iosMain), whose connect always fails. `app`'s `brokerModule` picks the debug or production `MqttSettings` from `BuildConfig` and passes them to `core/data` through Koin; `core/data` reads no `BuildConfig`. Device communication is message-based via MQTT topics.
 
-**Dependency Injection** — Koin; each module declares its own Koin module (e.g., `dataModule`, `devicesModule`), all loaded in `MyApplication`.
+**Dependency Injection** — Koin; each module declares its own Koin module (e.g., `dataModule`, `devicesModule`), all loaded in `MyApplication`. A shared module splits its bindings into a common module and a platform module: `core/data` has `dataModule` (commonMain), `androidDataModule` (androidMain) and `iosDataModule` (iosMain); the app loads the first two, `initShared` the first and the last.
 
-**State management** — ViewModels expose `StateFlow`; UI state sealed classes follow the `Loading / Success / Error` pattern (e.g., `DevicesListScreenState`).
+**State management** — ViewModels live in `core/presentation` (commonMain, the multiplatform `androidx.lifecycle.ViewModel`) and expose `StateFlow`; UI state sealed classes follow the `Loading / Success / Error` pattern (e.g., `DevicesListScreenState`). A ViewModel gets its arguments through its constructor (e.g. `ControlViewModel(deviceId, ...)`); the Android navigation layer reads the route argument and passes it with Koin `parametersOf`. UI state holds meanings, not display text (e.g. `HumidityStatus.THIRSTY`); each platform maps them to its own text.
+
+**Swift API (`shared`)** — Swift calls `initShared(settings)` once (it starts Koin; a second call does nothing), then
+creates ViewModels with `createDevicesViewModel()` and `createControlViewModel(deviceId)`. Swift never sees Koin, use
+cases, `Either` or `IotManager`: `shared` exports only `core:presentation`; `MqttSettings` and `TlsMode` get exact
+Swift names with `@ObjCName(exact = true)`; declarations Swift must not use are `internal` or `@HiddenFromObjC` (e.g.
+`newControlViewModel`, which Android uses because the `ControlViewModel` constructor is `internal`). A Flow exposed to
+Swift never throws: errors become an `Error` UI state. A `suspend` or throwing function added to the Swift API needs
+`@Throws(..., CancellationException::class)`. SKIE (`skie` in `gradle/libs.versions.toml`) is upgraded together with
+Kotlin.
 
 ### Testing Stack
 
@@ -98,7 +123,8 @@ build-logic/           — Gradle convention plugins (application, library, feat
 - **Turbine** — Flow testing
 - **Paparazzi** — Compose screenshot tests, on the JVM
 - **Compose UI test** (`AndroidComposeTestRule`) — Compose behaviour tests, instrumented
-- Unit tests live in `src/test/kotlin`, instrumented tests in `src/androidTest/kotlin`
+- Unit tests live in `src/test/kotlin` (shared KMP modules: `src/commonTest/kotlin`), instrumented tests in
+  `src/androidTest/kotlin`
 - Details and commands: `docs/testing.md`
 
 ### Code Quality

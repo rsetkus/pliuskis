@@ -41,6 +41,9 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import lt.setkus.pliuskis.core.designsystem.component.ErrorScreen
 import lt.setkus.pliuskis.core.designsystem.component.LoadingWheel
+import lt.setkus.pliuskis.core.presentation.devices.DeviceListItem
+import lt.setkus.pliuskis.core.presentation.devices.DevicesListScreenState
+import lt.setkus.pliuskis.core.presentation.devices.DevicesViewModel
 import org.koin.androidx.compose.koinViewModel
 import timber.log.Timber
 
@@ -195,7 +198,7 @@ internal fun DeviceCard(
                                 .padding(16.dp),
                             textAlign = TextAlign.Center
                         )
-                        DeviceIcon(icId = device.icon)
+                        DeviceIcon(icId = device.type.iconRes())
                     }
                     AvailabilityLabel(
                         online = device.online,

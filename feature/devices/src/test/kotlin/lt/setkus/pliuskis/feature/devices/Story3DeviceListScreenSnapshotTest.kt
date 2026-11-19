@@ -3,8 +3,11 @@ package lt.setkus.pliuskis.feature.devices
 import androidx.compose.material3.Surface
 import app.cash.paparazzi.Paparazzi
 import lt.setkus.pliuskis.core.designsystem.theme.PliuskisTheme
-import lt.setkus.pliuskis.feature.devices.DevicesListScreenState.Error
-import lt.setkus.pliuskis.feature.devices.DevicesListScreenState.Success
+import lt.setkus.pliuskis.core.devicelist.DeviceType
+import lt.setkus.pliuskis.core.presentation.devices.DeviceListItem
+import lt.setkus.pliuskis.core.presentation.devices.DevicesListScreenState
+import lt.setkus.pliuskis.core.presentation.devices.DevicesListScreenState.Error
+import lt.setkus.pliuskis.core.presentation.devices.DevicesListScreenState.Success
 import org.junit.Rule
 import org.junit.Test
 
@@ -38,8 +41,8 @@ class Story3DeviceListScreenSnapshotTest {
         snapshot(
             Success(
                 listOf(
-                    DeviceListItem(name = "Alpha", id = "a", icon = R.drawable.ic_plant, online = true),
-                    DeviceListItem(name = "Beta", id = "b", icon = R.drawable.ic_unknown, online = false)
+                    DeviceListItem(name = "Alpha", id = "a", type = DeviceType.PLANT, online = true),
+                    DeviceListItem(name = "Beta", id = "b", type = DeviceType.UNKNOWN, online = false)
                 )
             )
         )

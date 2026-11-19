@@ -6,7 +6,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import lt.setkus.pliuskis.core.designsystem.theme.PliuskisTheme
-import lt.setkus.pliuskis.feature.devices.DevicesListScreenState.Error
+import lt.setkus.pliuskis.core.presentation.devices.DevicesListScreenState.Error
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test

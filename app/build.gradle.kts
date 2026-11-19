@@ -57,6 +57,7 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.lifecycle.runtimeCompose)
 
+    implementation(libs.koin)
     implementation(libs.koin.compose)
 
     implementation(libs.timber)
