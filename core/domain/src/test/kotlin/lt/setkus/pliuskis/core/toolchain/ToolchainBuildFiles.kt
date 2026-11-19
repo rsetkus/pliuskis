@@ -91,8 +91,7 @@ internal object ToolchainBuildFiles {
         return result
     }
 
-    /** Plugin ids a Gradle script or build-logic source references: by id, by catalog alias or by `kotlin("x")`. */
-    fun pluginIdsReferencedIn(source: String): List<String> {
+    private fun pluginIdsReferencedIn(source: String): List<String> {
         val byAccessor = Regex("""libs\.plugins\.([A-Za-z0-9_.]+)""").findAll(source)
             .mapNotNull { catalog.pluginIdForAlias(it.groupValues[1]) }
         val byFindPlugin = Regex("""findPlugin\(\s*"([^"]+)"\s*\)""").findAll(source)
