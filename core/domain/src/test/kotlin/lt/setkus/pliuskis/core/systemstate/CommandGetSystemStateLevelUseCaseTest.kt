@@ -4,13 +4,11 @@ import app.cash.turbine.test
 import arrow.core.Either
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
-import io.mockk.coVerify
-import io.mockk.mockk
 
 class CommandGetSystemStateLevelUseCaseTest : FunSpec({
 
-    val mockRepository = mockk<SystemStateRequestable>(relaxed = true)
-    val target = RequestSystemStateUseCase(mockRepository)
+    val repository = RecordingSystemStateRequestable()
+    val target = RequestSystemStateUseCase(repository)
 
     test("""
         GIVEN water level repository,
@@ -22,6 +20,6 @@ class CommandGetSystemStateLevelUseCaseTest : FunSpec({
             awaitItem() shouldBe Either.Right(Unit)
             awaitComplete()
         }
-        coVerify(exactly = 1) { mockRepository.requestSystemState(param) }
+        repository.requestedDeviceIds shouldBe listOf(param)
     }
 })

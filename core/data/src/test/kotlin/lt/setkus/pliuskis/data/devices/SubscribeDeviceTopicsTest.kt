@@ -1,16 +1,13 @@
 package lt.setkus.pliuskis.data.devices
 
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
-import io.mockk.confirmVerified
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.verify
-import kotlinx.coroutines.flow.flowOf
+import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.flow.toList
 import lt.setkus.pliuskis.core.devicelist.DeviceEvent
-import lt.setkus.pliuskis.data.IotManager
 import lt.setkus.pliuskis.data.mqttclient.IotMessage
+import lt.setkus.pliuskis.data.wire.RecordingIotManager
 
 class SubscribeDeviceTopicsTest : FunSpec({
 
@@ -19,12 +16,12 @@ class SubscribeDeviceTopicsTest : FunSpec({
         WHEN devices are subscribed
         THEN should map them to events with the deviceId taken from the topic
     """) {
-        val manager = mockk<IotManager>()
-        every { manager.subscribe("devices/+/info") } returns flowOf(
-            IotMessage("devices/abc/info", """{"name":"Basil"}""")
-        )
-        every { manager.subscribe("devices/+/availability") } returns flowOf(
-            IotMessage("devices/abc/availability", "online")
+        val manager = RecordingIotManager(
+            clientId = "client-id",
+            messagesByTopicFilter = mapOf(
+                "devices/+/info" to listOf(IotMessage("devices/abc/info", """{"name":"Basil"}""")),
+                "devices/+/availability" to listOf(IotMessage("devices/abc/availability", "online")),
+            ),
         )
 
         SubscribeDeviceTopics(manager).subscribeDevices().toList() shouldContainExactlyInAnyOrder listOf(
@@ -32,9 +29,10 @@ class SubscribeDeviceTopicsTest : FunSpec({
             DeviceEvent.Availability("abc", "online")
         )
 
-        verify(exactly = 1) { manager.subscribe("devices/+/info") }
-        verify(exactly = 1) { manager.subscribe("devices/+/availability") }
-        confirmVerified(manager)
+        // Each discovery topic is subscribed exactly once, and the manager is used for nothing else.
+        manager.subscribed shouldContainExactlyInAnyOrder listOf("devices/+/info", "devices/+/availability")
+        manager.published.shouldBeEmpty()
+        manager.clientIdReads shouldBe 0
     }
 
     test("""
@@ -42,13 +40,17 @@ class SubscribeDeviceTopicsTest : FunSpec({
         WHEN devices are subscribed
         THEN should drop them
     """) {
-        val manager = mockk<IotManager>()
-        every { manager.subscribe("devices/+/info") } returns flowOf(
-            IotMessage("devices//info", "{}"),
-            IotMessage("devices/abc/info/extra", "{}"),
-            IotMessage("devices/abc/info", "{}")
+        val manager = RecordingIotManager(
+            clientId = "client-id",
+            messagesByTopicFilter = mapOf(
+                "devices/+/info" to listOf(
+                    IotMessage("devices//info", "{}"),
+                    IotMessage("devices/abc/info/extra", "{}"),
+                    IotMessage("devices/abc/info", "{}")
+                ),
+                "devices/+/availability" to emptyList(),
+            ),
         )
-        every { manager.subscribe("devices/+/availability") } returns flowOf()
 
         SubscribeDeviceTopics(manager).subscribeDevices().toList() shouldContainExactlyInAnyOrder listOf(
             DeviceEvent.Info("abc", "{}")

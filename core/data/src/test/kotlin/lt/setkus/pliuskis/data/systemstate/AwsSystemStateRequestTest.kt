@@ -1,18 +1,15 @@
 package lt.setkus.pliuskis.data.systemstate
 
 import io.kotest.core.spec.style.FunSpec
-import io.mockk.coVerify
-import io.mockk.every
-import io.mockk.mockk
-import lt.setkus.pliuskis.data.IotManager
+import io.kotest.matchers.collections.shouldContain
+import lt.setkus.pliuskis.data.wire.PublishedMessage
+import lt.setkus.pliuskis.data.wire.RecordingIotManager
 
 class AwsSystemStateRequestTest : FunSpec({
 
-    val mockIotManager = mockk<IotManager>(relaxed = true) {
-        every { getClientId() } returns "client-id"
-    }
+    val iotManager = RecordingIotManager("client-id")
 
-    val awsSystemStateRequest = AwsSystemStateRequest(mockIotManager)
+    val awsSystemStateRequest = AwsSystemStateRequest(iotManager)
 
     test("""
         GIVEN aws manager
@@ -20,8 +17,7 @@ class AwsSystemStateRequestTest : FunSpec({
         THEN should complete without error
     """) {
         awsSystemStateRequest.requestSystemState("1234")
-        coVerify {
-            mockIotManager.publishString("""{"applicationId":"client-id"}""", "devices/1234/status")
-        }
+        iotManager.published shouldContain
+            PublishedMessage("devices/1234/status", """{"applicationId":"client-id"}""")
     }
 })

@@ -30,7 +30,8 @@ dependencies {
     implementation(projects.core.domain)
     implementation(projects.core.data)
 
-    testImplementation(libs.mockk)
+    implementation(libs.timber)
+
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.kotest.runner.junit5)
     testImplementation(libs.kotest.assertions.core)

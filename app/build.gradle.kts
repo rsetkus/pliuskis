@@ -1,11 +1,14 @@
 plugins {
     alias(libs.plugins.pliuskis.android.application.compose)
     alias(libs.plugins.pliuskis.android.application)
+    alias(libs.plugins.secrets)
     alias(libs.plugins.pliuskis.android.code.quality)
 }
 
 android {
     namespace = "lt.setkus.pliuskis"
+    // brokerModule reads the broker and keystore settings from BuildConfig (filled by the secrets plugin)
+    buildFeatures.buildConfig = true
 
     defaultConfig {
         applicationId = "lt.setkus.pliuskis"
@@ -34,6 +37,11 @@ android {
     testOptions.unitTests.all { it.useJUnitPlatform() }
 }
 
+secrets {
+    propertiesFileName = "secrets.properties"
+    defaultPropertiesFileName = "default.secrets.properties"
+}
+
 dependencies {
     implementation(projects.feature.devices)
     implementation(projects.feature.control)
@@ -50,6 +58,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtimeCompose)
 
     implementation(libs.koin.compose)
+
+    implementation(libs.timber)
 
     implementation(libs.androidx.compose.material3)
     // Android Studio Preview support

@@ -13,7 +13,7 @@ class ExecuteWaterCommandUseCase(
         emit(execute(param))
     }
 
-    private fun execute(param: String) = Either.catch {
+    private suspend fun execute(param: String) = Either.catch {
         commandExecutable.execute(param)
     }.mapLeft {
         it

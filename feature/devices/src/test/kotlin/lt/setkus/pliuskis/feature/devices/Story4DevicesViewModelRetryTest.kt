@@ -6,13 +6,11 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import app.cash.turbine.test
 import io.kotest.core.spec.style.FunSpec
-import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
-import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -33,14 +31,8 @@ import lt.setkus.pliuskis.feature.devices.DevicesListScreenState.Error
 import lt.setkus.pliuskis.feature.devices.DevicesListScreenState.Loading
 import lt.setkus.pliuskis.feature.devices.DevicesListScreenState.Success
 import java.io.IOException
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
-private const val RETRY_IO_THREAD_NAME = "story4-io"
-private const val RETRY_IO_SHUTDOWN_TIMEOUT_SECONDS = 5L
 private const val RETRIES_IN_A_ROW = 3
 
 private fun basilInfoEvent() =
@@ -53,10 +45,10 @@ private fun basilListItem() =
  * Connect source whose first call fails; later calls run [onLaterConnect]. [calls] counts every
  * connect, so a test can tell how many connects actually happened.
  */
-private class FailOnceConnectable(private val onLaterConnect: () -> String = { "CONNECTED" }) : Connectable {
+private class FailOnceConnectable(private val onLaterConnect: suspend () -> String = { "CONNECTED" }) : Connectable {
     val calls = AtomicInteger(0)
 
-    override fun connect(): String {
+    override suspend fun connect(): String {
         val call = calls.incrementAndGet()
         if (call == 1) throw IOException("offline")
         return onLaterConnect()
@@ -72,14 +64,13 @@ private class RetryHarness(val dispatcher: TestDispatcher) {
     private val store = ViewModelStore()
     private var created = 0
 
-    fun devicesViewModel(connectable: Connectable, ioDispatcher: CoroutineDispatcher): DevicesViewModel {
+    fun devicesViewModel(connectable: Connectable): DevicesViewModel {
         val factory = viewModelFactory {
             initializer {
                 DevicesViewModel(
                     connect = ConnectUseCase(connectable),
                     observeDevices = ObserveDevicesUseCase(RetrySubscribable(flowOf(basilInfoEvent()))),
                     mapper = ::fromDomainModel,
-                    ioDispatcher = ioDispatcher,
                 )
             }
         }
@@ -88,15 +79,6 @@ private class RetryHarness(val dispatcher: TestDispatcher) {
     }
 
     fun clear() = store.clear()
-}
-
-private fun retryIoExecutor(): ExecutorService =
-    Executors.newSingleThreadExecutor { Thread(it, RETRY_IO_THREAD_NAME) }
-
-/** Lets queued and blocked I/O work finish while Dispatchers.Main is still the test dispatcher. */
-private fun ExecutorService.drain() {
-    shutdown()
-    awaitTermination(RETRY_IO_SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS).shouldBeTrue()
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -130,7 +112,7 @@ class Story4DevicesViewModelRetryTest : FunSpec({
     // THEN the state should go Loading and then Success once the observe-devices use case emits devices
     test("testStory4_retryAfterFailedConnectShowsLoadingThenDevices") {
         runRetryTest { harness ->
-            val target = harness.devicesViewModel(FailOnceConnectable(), harness.dispatcher)
+            val target = harness.devicesViewModel(FailOnceConnectable())
 
             target.devices.test {
                 awaitItem() shouldBe Loading
@@ -151,14 +133,13 @@ class Story4DevicesViewModelRetryTest : FunSpec({
     // THEN connect should be invoked only once for those retries
     test("testStory4_repeatedRetriesWhileConnectingConnectOnce") {
         runRetryTest { harness ->
-            val connectGate = CountDownLatch(1)
-            val io = retryIoExecutor()
+            val connectGate = CompletableDeferred<Unit>()
             try {
                 val connectable = FailOnceConnectable {
                     connectGate.await()
                     "CONNECTED"
                 }
-                val target = harness.devicesViewModel(connectable, io.asCoroutineDispatcher())
+                val target = harness.devicesViewModel(connectable)
 
                 target.devices.test {
                     awaitItem() shouldBe Loading
@@ -166,7 +147,7 @@ class Story4DevicesViewModelRetryTest : FunSpec({
 
                     repeat(RETRIES_IN_A_ROW) { target.retry() }
                     testScheduler.runCurrent()
-                    connectGate.countDown()
+                    connectGate.complete(Unit)
 
                     // Skip any repeated Loading; the retry must end in the device list.
                     var state = awaitItem()
@@ -175,12 +156,10 @@ class Story4DevicesViewModelRetryTest : FunSpec({
                     cancelAndIgnoreRemainingEvents()
                 }
 
-                io.drain()
                 // One failed initial connect plus exactly one connect for the three retries.
                 connectable.calls.get() shouldBe 2
             } finally {
-                connectGate.countDown()
-                if (!io.isShutdown) io.drain()
+                connectGate.complete(Unit)
             }
         }
     }

@@ -3,6 +3,7 @@ package lt.setkus.pliuskis.core.devicelist
 import arrow.core.Either
 import arrow.core.left
 import arrow.core.right
+import co.touchlab.kermit.Logger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.drop
@@ -10,7 +11,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.runningFold
 import kotlinx.serialization.json.Json
 import lt.setkus.pliuskis.core.BaseUseCase
-import timber.log.Timber
 
 private const val ONLINE = "online"
 
@@ -22,6 +22,8 @@ private const val ONLINE = "online"
 class ObserveDevicesUseCase(
     private val subscribable: DeviceSubscribable
 ) : BaseUseCase<Unit, List<Device>> {
+
+    private val log = Logger.withTag("ObserveDevicesUseCase")
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -49,7 +51,7 @@ class ObserveDevicesUseCase(
         } else {
             decode(event.payload).fold(
                 ifLeft = { error ->
-                    Timber.w(error, "Skipping malformed info from device ${event.deviceId}")
+                    log.w("Skipping malformed info from device ${event.deviceId}", error)
                     registry
                 },
                 ifRight = { info ->

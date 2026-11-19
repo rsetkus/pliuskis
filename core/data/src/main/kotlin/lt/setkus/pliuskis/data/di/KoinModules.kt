@@ -6,14 +6,14 @@ import lt.setkus.pliuskis.core.connect.Connectable
 import lt.setkus.pliuskis.core.devicelist.DeviceSubscribable
 import lt.setkus.pliuskis.core.systemstate.SystemStateRequestable
 import lt.setkus.pliuskis.core.systemstate.SystemStateSubscribable
-import lt.setkus.pliuskis.data.BuildConfig
 import lt.setkus.pliuskis.data.ConnectMqttSource
 import lt.setkus.pliuskis.data.IotManager
+import lt.setkus.pliuskis.data.clientid.ClientIdStore
+import lt.setkus.pliuskis.data.clientid.SharedPreferencesClientIdStore
 import lt.setkus.pliuskis.data.command.water.MqttExecuteWaterCommand
 import lt.setkus.pliuskis.data.devices.SubscribeDeviceTopics
 import lt.setkus.pliuskis.data.mqttclient.HiveMqttClientManager
-import lt.setkus.pliuskis.data.mqttclient.getDebugMqttClient
-import lt.setkus.pliuskis.data.mqttclient.getProductionMqttClient
+import lt.setkus.pliuskis.data.mqttclient.createMqttClient
 import lt.setkus.pliuskis.data.systemstate.AwsSystemStateRequest
 import lt.setkus.pliuskis.data.systemstate.SubscribeSystemStatusTopic
 import lt.setkus.pliuskis.data.util.AndroidConnectivityManager
@@ -22,9 +22,10 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
 val dataModule = module {
-    single<Mqtt3Client> {
-        if (BuildConfig.DEBUG) getDebugMqttClient() else getProductionMqttClient(androidContext())
-    }
+    single<ClientIdStore> { SharedPreferencesClientIdStore(androidContext()) }
+
+    // MqttSettings (and, for TLS, MqttTlsSetup) come from the app module, which reads BuildConfig.
+    single<Mqtt3Client> { createMqttClient(get(), getOrNull()) }
 
     single<IotManager> {
         HiveMqttClientManager(get())

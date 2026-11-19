@@ -29,12 +29,11 @@ dependencies {
     api(libs.kotlin.coroutines.android)
 
     // Tools
-    api(libs.timber)
+    api(libs.kermit)
     api(libs.koin)
 
     // Unit tests
     testImplementation(libs.junit)
-    testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.kotest.runner.junit5)
     testImplementation(libs.kotest.assertions.core)

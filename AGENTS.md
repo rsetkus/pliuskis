@@ -36,6 +36,7 @@ different results. See `docs/testing.md` for the Compose test setup.
 - **JDK 17** required: the minimum for AGP 9.3 and Gradle 9.7, and the target of the build-logic convention plugins
 - **AWS IoT credentials** — copy `default.secrets.properties` to `secrets.properties` and fill in:
   - `AMAZON_IOT_ENDPOINT`, `KEYSTORE_NAME`, `KEYSTORE_PASSWORD`, `CERT_ID`
+  - The release build also needs the client keystore at `app/src/main/assets/legacy-keystore.p12` (gitignored)
 - **Debug broker** — the debug build connects to `DEBUG_BROKER_HOST`:1883 (default `10.0.2.2`, the emulator's alias
   for the host). Set it in `secrets.properties` to a LAN address to run the debug build on a physical phone.
 
@@ -84,7 +85,7 @@ build-logic/           — Gradle convention plugins (application, library, feat
 
 **Use Cases** — every business operation is a use case implementing `BaseUseCase<T, R>`. They return `Flow<Either<Throwable, R>>` using Arrow-kt for error handling.
 
-**IoT/MQTT** — `IotManager` is the abstract interface; `HiveMqttClientManager` is the HiveMQ implementation. `MqttClientProducer` selects debug vs production client based on `BuildConfig.DEBUG`. Device communication is message-based via MQTT topics.
+**IoT/MQTT** — `IotManager` is the abstract interface; `HiveMqttClientManager` is the HiveMQ implementation. `app`'s `brokerModule` picks the debug or production `MqttSettings` from `BuildConfig` and passes them to `core/data` through Koin; `core/data` reads no `BuildConfig`. Device communication is message-based via MQTT topics.
 
 **Dependency Injection** — Koin; each module declares its own Koin module (e.g., `dataModule`, `devicesModule`), all loaded in `MyApplication`.
 

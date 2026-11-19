@@ -1,6 +1,5 @@
 package lt.setkus.pliuskis.feature.devices
 
-import kotlinx.coroutines.Dispatchers
 import lt.setkus.pliuskis.core.devicelist.Device
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.qualifier.named
@@ -12,7 +11,6 @@ val devicesModule = module {
             connect = get(),
             observeDevices = get(),
             mapper = get(qualifier = named("deviceListItemMapper")),
-            ioDispatcher = Dispatchers.IO
         )
     }
     single<(Device) -> DeviceListItem>(

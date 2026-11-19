@@ -15,7 +15,7 @@ class MqttExecuteWaterCommand(
      * Executes the command to water plant
      * @param i - device id
      */
-    override fun execute(i: String) {
+    override suspend fun execute(i: String) {
         val message = Json.encodeToString(CommandMessage(Command.WATER_COMMAND))
         iotManager.publishString(
             message = message,

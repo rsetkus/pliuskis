@@ -1,13 +1,10 @@
 plugins {
     alias(libs.plugins.pliuskis.android.library)
-    alias(libs.plugins.secrets)
     alias(libs.plugins.pliuskis.android.code.quality)
 }
 
 android {
     namespace = "lt.setkus.pliuskis.data"
-    // MqttClientProducer reads the broker and keystore settings from BuildConfig (filled by the secrets plugin)
-    buildFeatures.buildConfig = true
     defaultConfig {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
@@ -29,11 +26,6 @@ android {
             excludes += listOf("META-INF/INDEX.LIST", "META-INF/io.netty.versions.properties")
         }
     }
-}
-
-secrets {
-    propertiesFileName = "secrets.properties"
-    defaultPropertiesFileName = "default.secrets.properties"
 }
 
 dependencies {

@@ -12,7 +12,7 @@ class RequestSystemStateUseCase(
             emit(tryRequestSystemState(param))
         }
 
-    private fun tryRequestSystemState(param: String): Either<Throwable, Unit> =
+    private suspend fun tryRequestSystemState(param: String): Either<Throwable, Unit> =
         Either.catch {
             repository.requestSystemState(param)
         }.mapLeft {
