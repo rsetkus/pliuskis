@@ -1,8 +1,17 @@
+import java.io.StringReader
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.pliuskis.android.application.compose)
     alias(libs.plugins.pliuskis.android.application)
     alias(libs.plugins.secrets)
     alias(libs.plugins.pliuskis.android.code.quality)
+}
+
+// The version name both apps share, defined once in version.properties (iOS reads it as MARKETING_VERSION)
+val versionFile = rootProject.layout.projectDirectory.file("version.properties")
+val versionProperties = Properties().apply {
+    load(StringReader(providers.fileContents(versionFile).asText.get()))
 }
 
 android {
@@ -13,7 +22,9 @@ android {
     defaultConfig {
         applicationId = "lt.setkus.pliuskis"
         versionCode = 1
-        versionName = "1.0"
+        versionName = checkNotNull(versionProperties.getProperty("VERSION_NAME")) {
+            "VERSION_NAME is missing in version.properties"
+        }
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

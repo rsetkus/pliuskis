@@ -45,6 +45,9 @@ targets:
         # The app talks to the MQTT broker on the local network; iOS asks the user once with this text. No Bonjour,
         # so no NSBonjourServices.
         NSLocalNetworkUsageDescription: Pliuskis connects to the MQTT broker on your local network to find your plant devices, show their status and water them.
+        # Export compliance: the app uses no encryption beyond the OS's own (plaintext MQTT, or TLS from the OS), which
+        # is exempt, so App Store Connect does not ask for each build.
+        ITSAppUsesNonExemptEncryption: false
         UILaunchScreen: {}
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false

@@ -1,0 +1,147 @@
+name: iOS Release
+
+# Builds a signed Release of iosApp and uploads it to TestFlight, for internal testers only. It starts by hand
+# (workflow_dispatch) or when a version tag (v*) is pushed, never on a pull request. It releases only from master or a
+# v* tag: the `guard` job stops any other ref before the signing job starts, and the `release` environment, which
+# holds every secret, allows only those refs as well. The repo is public: the job prints no secret and uploads no
+# artifact.
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+# One release at a time; a second run waits instead of cancelling an upload.
+concurrency:
+  group: ios-release
+  cancel-in-progress: false
+
+jobs:
+  guard:
+    name: Check Release Ref
+    runs-on: ubuntu-latest
+    steps:
+      - name: Allow Only master or a Version Tag
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          case "$REF" in
+            refs/heads/master | refs/tags/v*)
+              echo "Releasing from $REF"
+              ;;
+            *)
+              echo "::error::The iOS release runs only from master or a v* tag, not from $REF."
+              exit 1
+              ;;
+          esac
+
+  testflight:
+    name: TestFlight Upload
+    needs: guard
+    runs-on: macos-26
+    timeout-minutes: 90
+    # Every secret below is a secret of this environment (not of the repository). It needs a reviewer's approval and
+    # allows only master and v* tags.
+    environment: release
+    env:
+      # The same Xcode as the iOS checks (build-ios.yml); Kotlin 2.4.20-2.4.21 supports Xcode 26.4. Bump with Kotlin.
+      XCODE_APP: /Applications/Xcode_26.4.1.app
+    steps:
+      # Third-party actions are pinned to a commit, because this job can read the signing secrets.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select --switch "$XCODE_APP/Contents/Developer"
+          xcodebuild -version
+
+      # Xcode's Run Script phase builds Shared through Gradle, which needs JDK 17 (JAVA_HOME).
+      - name: Set Up JDK
+        uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          java-version: 17
+          distribution: "temurin"
+
+      # Read-only: the release uses the Gradle cache that master's builds wrote and writes none.
+      - name: Set Up Gradle
+        uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
+        with:
+          cache-read-only: true
+
+      # Secrets.xcconfig (gitignored) is the template plus the release values, which override the template's: in an
+      # xcconfig file the last assignment wins. The app reads BROKER_HOST through Info.plist. The App Store Connect API
+      # key goes to a file only this user can read. Neither file is printed.
+      - name: Write Signing Files
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+          BROKER_HOST: ${{ secrets.BROKER_HOST }}
+        run: |
+          missing=0
+          for name in APPLE_TEAM_ID ASC_KEY_ID ASC_ISSUER_ID ASC_PRIVATE_KEY BROKER_HOST; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Secret $name is not set in the release environment."
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ] || exit 1
+          umask 077
+          {
+            cat iosApp/Configuration/Secrets.template.xcconfig
+            printf 'DEVELOPMENT_TEAM = %s\n' "$APPLE_TEAM_ID"
+            printf 'BROKER_HOST[config=Release] = %s\n' "$BROKER_HOST"
+          } > iosApp/Configuration/Secrets.xcconfig
+          printf '%s\n' "$ASC_PRIVATE_KEY" > "$RUNNER_TEMP/asc-api-key.p8"
+
+      # Cloud-managed signing: with the App Store Connect API key (Admin role) xcodebuild creates or updates the
+      # certificates, the App ID and the profiles it needs. The build number (CFBundleVersion) is the run number; the
+      # version name comes from version.properties.
+      - name: Archive
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: >-
+          xcodebuild archive
+          -project iosApp/iosApp.xcodeproj -scheme iosApp -configuration Release
+          -destination generic/platform=iOS
+          -archivePath "$RUNNER_TEMP/iosApp.xcarchive"
+          -allowProvisioningUpdates
+          -authenticationKeyPath "$RUNNER_TEMP/asc-api-key.p8"
+          -authenticationKeyID "$ASC_KEY_ID"
+          -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+          CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER"
+
+      # Only the two version keys: the app's Info.plist also holds the broker host.
+      - name: Show Version
+        run: |
+          plist="$RUNNER_TEMP/iosApp.xcarchive/Products/Applications/iosApp.app/Info.plist"
+          echo "CFBundleShortVersionString: $(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$plist")"
+          echo "CFBundleVersion: $(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$plist")"
+
+      # Signs for App Store Connect and uploads to TestFlight (iosApp/ExportOptions.plist: destination upload,
+      # internal testing only, build number kept).
+      - name: Upload to TestFlight
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: >-
+          xcodebuild -exportArchive
+          -archivePath "$RUNNER_TEMP/iosApp.xcarchive"
+          -exportOptionsPlist iosApp/ExportOptions.plist
+          -exportPath "$RUNNER_TEMP/export"
+          -allowProvisioningUpdates
+          -authenticationKeyPath "$RUNNER_TEMP/asc-api-key.p8"
+          -authenticationKeyID "$ASC_KEY_ID"
+          -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+
+      - name: Remove Signing Files
+        if: always()
+        run: |
+          rm -f "$RUNNER_TEMP/asc-api-key.p8" iosApp/Configuration/Secrets.xcconfig
+          rm -rf "$RUNNER_TEMP/iosApp.xcarchive" "$RUNNER_TEMP/export"

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Export options of the release workflow (.github/workflows/release-ios.yml): `xcodebuild -exportArchive` signs the
+  archive for App Store Connect with cloud-managed signing and uploads it to TestFlight. No teamID: the export uses the
+  team the archive was built with (DEVELOPMENT_TEAM from Secrets.xcconfig).
+  - manageAppVersionAndBuildNumber false: keep the build number the workflow sets (the run number).
+  - testFlightInternalTestingOnly true: the build can go to internal TestFlight testers only, never to external
+    testers or the App Store.
+-->
+<plist version="1.0">
+<dict>
+	<key>destination</key>
+	<string>upload</string>
+	<key>manageAppVersionAndBuildNumber</key>
+	<false/>
+	<key>method</key>
+	<string>app-store-connect</string>
+	<key>signingStyle</key>
+	<string>automatic</string>
+	<key>testFlightInternalTestingOnly</key>
+	<true/>
+	<key>uploadSymbols</key>
+	<true/>
+</dict>
+</plist>
