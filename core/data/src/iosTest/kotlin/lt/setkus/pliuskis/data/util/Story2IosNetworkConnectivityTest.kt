@@ -10,8 +10,7 @@ import kotlinx.coroutines.test.runTest
 
 /**
  * STORY-2: the iOS [NetworkConnectivity] turns the path updates of its [NetworkPathSource] (NWPathMonitor in the app)
- * into `isOnline`. The manual half of AC15 (Wi-Fi off and on in the running app) is a skipped XCTest with the steps,
- * `iosApp/iosAppTests/Story2ManualChecksTests.swift`.
+ * into `isOnline`.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class Story2IosNetworkConnectivityTest : FunSpec({

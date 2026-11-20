@@ -7,9 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		06FD94F55DCF72B34DA3F61C /* Story2ManualChecksTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B89BC27C197E0B3FBA7B235 /* Story2ManualChecksTests.swift */; };
 		10661B8C2867FAA544AD449E /* DevicesNavigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBC65CD98B167DDC0ED35FFF /* DevicesNavigation.swift */; };
-		1BDB75E999E33468405E0BD6 /* Story6ManualChecksTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E48B330463BF671CB92D68E /* Story6ManualChecksTests.swift */; };
 		1C81D6F669B7BB6D2FFCCEB3 /* CocoaMQTT in Frameworks */ = {isa = PBXBuildFile; productRef = D17C22BF72F91EB0B4A2BDFA /* CocoaMQTT */; };
 		1D7F53FF8A06A7030C26CF8C /* ForegroundRefresh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99A653A53EC1584D8417FA8D /* ForegroundRefresh.swift */; };
 		22EA1CB33A17DCC6FC82406D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F543015C899423D4B01CEB2E /* Assets.xcassets */; };
@@ -21,8 +19,6 @@
 		5FA6C2A1708F0A1430B80F49 /* Story4DeviceListUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BC2A17876140E99F2222B43 /* Story4DeviceListUITests.swift */; };
 		617FFD04E1A05742650EF3AB /* DeviceListScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4B26B0FBADC9E675508CBAF /* DeviceListScreen.swift */; };
 		692665F481447202B7E3F247 /* UITestScenario.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEDEBB5DE675662C92015474 /* UITestScenario.swift */; };
-		75F85F1EC74C22EB61E06C6B /* Story3ManualChecksTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EC764797968F04A208D21B1 /* Story3ManualChecksTests.swift */; };
-		A18CDFB41DAA95ABE6323044 /* Story4ManualChecksTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FDD02C6583BE58989A4D371 /* Story4ManualChecksTests.swift */; };
 		A59D7A7B69355B07DF5EEF2C /* BrokerConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A20EBD74A87D746A26D7A6E /* BrokerConfiguration.swift */; };
 		B26AEFA8C3C1A244B4CF6CA3 /* Story5ControlStatusTextTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83B611C2EB064D31271F213 /* Story5ControlStatusTextTests.swift */; };
 		B996C1DCAE6FF18E59E27BA1 /* Story2MqttBrokerContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7361BA24264D6C4C2744AED1 /* Story2MqttBrokerContractTests.swift */; };
@@ -33,7 +29,6 @@
 		D2AA92952E33E5027D362399 /* LiveDeviceList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95D5B3B25E096DC1CD0455D3 /* LiveDeviceList.swift */; };
 		E8C3258C7E1F03AB6A4F3006 /* Story1ViewModelStoreOwnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 205063975C8D1D2D614C19FE /* Story1ViewModelStoreOwnerTests.swift */; };
 		EB9C403B080A622ECAB09D99 /* Story5ControlScreenUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBF44703DC8C94063CCEA781 /* Story5ControlScreenUITests.swift */; };
-		FA7AED6F012FFD94C051DBF4 /* Story5ManualChecksTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2A1DF693BA0EEEF73762EE4 /* Story5ManualChecksTests.swift */; };
 		FFF93642A27B8411D7A8E6BE /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2925723D1B4AC9FBF45C9F3F /* RootView.swift */; };
 /* End PBXBuildFile section */
 
@@ -62,14 +57,10 @@
 		2D2BDCAFB819148916A14530 /* IosViewModelStoreOwner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IosViewModelStoreOwner.swift; sourceTree = "<group>"; };
 		310E61D0D729B1CE903AB710 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
 		323906AFB18147ABEDEBDB38 /* iosAppUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = iosAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		3EC764797968F04A208D21B1 /* Story3ManualChecksTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Story3ManualChecksTests.swift; sourceTree = "<group>"; };
 		4714CF8F148207FF8AA9B987 /* CocoaMqttTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CocoaMqttTransport.swift; sourceTree = "<group>"; };
-		4B89BC27C197E0B3FBA7B235 /* Story2ManualChecksTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Story2ManualChecksTests.swift; sourceTree = "<group>"; };
-		4FDD02C6583BE58989A4D371 /* Story4ManualChecksTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Story4ManualChecksTests.swift; sourceTree = "<group>"; };
 		54761DF4742351425757C370 /* Story3BrokerSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Story3BrokerSettingsTests.swift; sourceTree = "<group>"; };
 		56583BC252B5F01ED9DEA19D /* iosAppTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = iosAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		6BC2A17876140E99F2222B43 /* Story4DeviceListUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Story4DeviceListUITests.swift; sourceTree = "<group>"; };
-		6E48B330463BF671CB92D68E /* Story6ManualChecksTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Story6ManualChecksTests.swift; sourceTree = "<group>"; };
 		7361BA24264D6C4C2744AED1 /* Story2MqttBrokerContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Story2MqttBrokerContractTests.swift; sourceTree = "<group>"; };
 		86038AE1032E284E79B32AD6 /* iosApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = iosApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		86D8F9C9CBD84AE9E041AD22 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
@@ -80,7 +71,6 @@
 		BE22A108EBBA7E1F4DD2FBA4 /* PliuskisApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PliuskisApp.swift; sourceTree = "<group>"; };
 		BEDEBB5DE675662C92015474 /* UITestScenario.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UITestScenario.swift; sourceTree = "<group>"; };
 		C3CE4D5A0FE4C86755A713C6 /* ControlStatusText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlStatusText.swift; sourceTree = "<group>"; };
-		D2A1DF693BA0EEEF73762EE4 /* Story5ManualChecksTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Story5ManualChecksTests.swift; sourceTree = "<group>"; };
 		D83B611C2EB064D31271F213 /* Story5ControlStatusTextTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Story5ControlStatusTextTests.swift; sourceTree = "<group>"; };
 		DBC65CD98B167DDC0ED35FFF /* DevicesNavigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DevicesNavigation.swift; sourceTree = "<group>"; };
 		E031C60CB07D043723D4E059 /* ControlScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlScreen.swift; sourceTree = "<group>"; };
@@ -146,15 +136,10 @@
 			isa = PBXGroup;
 			children = (
 				205063975C8D1D2D614C19FE /* Story1ViewModelStoreOwnerTests.swift */,
-				4B89BC27C197E0B3FBA7B235 /* Story2ManualChecksTests.swift */,
 				7361BA24264D6C4C2744AED1 /* Story2MqttBrokerContractTests.swift */,
 				54761DF4742351425757C370 /* Story3BrokerSettingsTests.swift */,
-				3EC764797968F04A208D21B1 /* Story3ManualChecksTests.swift */,
-				4FDD02C6583BE58989A4D371 /* Story4ManualChecksTests.swift */,
 				D83B611C2EB064D31271F213 /* Story5ControlStatusTextTests.swift */,
-				D2A1DF693BA0EEEF73762EE4 /* Story5ManualChecksTests.swift */,
 				00B581A263BA5013E6FC8AD4 /* Story6ForegroundRefreshTests.swift */,
-				6E48B330463BF671CB92D68E /* Story6ManualChecksTests.swift */,
 			);
 			path = iosAppTests;
 			sourceTree = "<group>";
@@ -355,15 +340,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				E8C3258C7E1F03AB6A4F3006 /* Story1ViewModelStoreOwnerTests.swift in Sources */,
-				06FD94F55DCF72B34DA3F61C /* Story2ManualChecksTests.swift in Sources */,
 				B996C1DCAE6FF18E59E27BA1 /* Story2MqttBrokerContractTests.swift in Sources */,
 				C8EADB38EBD3A0261D772689 /* Story3BrokerSettingsTests.swift in Sources */,
-				75F85F1EC74C22EB61E06C6B /* Story3ManualChecksTests.swift in Sources */,
-				A18CDFB41DAA95ABE6323044 /* Story4ManualChecksTests.swift in Sources */,
 				B26AEFA8C3C1A244B4CF6CA3 /* Story5ControlStatusTextTests.swift in Sources */,
-				FA7AED6F012FFD94C051DBF4 /* Story5ManualChecksTests.swift in Sources */,
 				48DD378078DF4A8575B9DD34 /* Story6ForegroundRefreshTests.swift in Sources */,
-				1BDB75E999E33468405E0BD6 /* Story6ManualChecksTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -377,7 +357,7 @@
 		};
 		586731ED97E400C1B162A39B /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			productRef = "TEMP_E3C964AB-003E-40E4-9AED-172F9E151B7C" /* CocoaMQTT */;
+			productRef = "TEMP_6FF4D252-4A46-44A2-BFD2-3C89C93208B6" /* CocoaMQTT */;
 		};
 		D6369A31B29DDC1641D6E6F0 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -674,7 +654,7 @@
 			package = 6A7B48AA29D950F5023A1223 /* XCRemoteSwiftPackageReference "CocoaMQTT" */;
 			productName = CocoaMQTT;
 		};
-		"TEMP_E3C964AB-003E-40E4-9AED-172F9E151B7C" /* CocoaMQTT */ = {
+		"TEMP_6FF4D252-4A46-44A2-BFD2-3C89C93208B6" /* CocoaMQTT */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 6A7B48AA29D950F5023A1223 /* XCRemoteSwiftPackageReference "CocoaMQTT" */;
 			productName = CocoaMQTT;
