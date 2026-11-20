@@ -151,7 +151,7 @@ A shared module applies `pliuskis.kmp.library` (`build-logic/.../KmpLibraryConve
 compiler plugin its code needs, such as `kotlin.serialization`. The plugin gives it the targets Android, `iosArm64` and
 `iosSimulatorArm64`, the Android host tests (`withHostTest`), a `test` task that runs them, the test dependencies
 below, and ktlint and detekt over `src/commonMain`, `src/androidMain`, `src/iosMain` and the test source sets.
-`core/domain`, `core/data` and `core/presentation` are shared modules; `core/kmpsample` is the smallest example.
+`core/domain`, `core/data` and `core/presentation` are shared modules.
 
 - **Stack:** Kotest `FunSpec` with Kotest assertions, the same as the Android modules, plus Turbine for Flows and
   kotlinx-coroutines-test (`runTest`). The plugin adds all four to `commonTest`. Tests that will run on iOS don't use

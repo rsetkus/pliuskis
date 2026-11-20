@@ -18,7 +18,7 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
  * the same ktlint and detekt checks as the Android modules. Its `test` task runs the Android host tests, so
  * `./gradlew test` covers it as it covers the Android modules.
  *
- * The namespace is derived from the module path, e.g. `:core:kmpsample` -> `lt.setkus.pliuskis.core.kmpsample`.
+ * The namespace is derived from the module path, e.g. `:core:domain` -> `lt.setkus.pliuskis.core.domain`.
  */
 class KmpLibraryConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
