@@ -1,4 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="control_loading">Loading status of a device...</string>
+    <string name="control_loading">Loading the plant\'s status…</string>
+    <string name="control_title_fallback">Plant</string>
+    <string name="control_back">Back</string>
+
+    <string name="control_thriving_title">Feeling great</string>
+    <string name="control_thriving_message">Soil moisture is just right.</string>
+    <string name="control_thirsty_title">Thirsty</string>
+    <string name="control_thirsty_message">The soil is dry. Water soon.</string>
+    <string name="control_updated">Updated %1$s</string>
+
+    <string name="control_conditions">Conditions</string>
+    <string name="control_percent">%1$d%%</string>
+    <string name="control_moisture">Soil moisture</string>
+    <string name="control_moisture_ok">Healthy</string>
+    <string name="control_moisture_low">Dry</string>
+    <string name="control_tank">Water tank</string>
+    <string name="control_tank_ok">Full enough</string>
+    <string name="control_tank_low">Refill soon</string>
+
+    <string name="control_water_now">Water now</string>
+    <string name="control_watering">Watering…</string>
+    <string name="control_watering_started">Watering started</string>
+    <string name="control_watering_failed">Couldn\'t reach your plant. Try again.</string>
+    <string name="control_try_again">Try again</string>
+
+    <string name="control_error_title">Can\'t reach your plant</string>
+    <string name="control_error_message">Check your internet connection and try again.</string>
+    <string name="control_retry">Retry</string>
 </resources>

@@ -138,7 +138,7 @@ core/
                          `IotManager` contract in commonMain, the HiveMQ client and Android services in androidMain
   presentation/        — ViewModels, UI states and status threshold logic; shared KMP module, no Compose or
                          SavedStateHandle
-  designsystem/        — Shared Material 3 Compose components and theming
+  designsystem/        — Flora theme and shared Compose components (see docs/design-system.md)
 feature/               — Android only: Compose UI, navigation, Koin wiring of the ViewModels, Android mapping
                          (display text, date format, icons); no ViewModel classes
   devices/             — Device list screen

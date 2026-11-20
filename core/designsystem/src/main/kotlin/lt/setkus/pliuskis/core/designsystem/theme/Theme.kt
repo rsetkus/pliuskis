@@ -1,210 +1,100 @@
-/*
- * Copyright 2022 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package lt.setkus.pliuskis.core.designsystem.theme
 
-import android.os.Build
-import androidx.annotation.ChecksSdkIntAtLeast
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
-import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 
-val LightDefaultColorScheme = lightColorScheme(
-    primary = Purple40,
+val LightFloraColorScheme = lightColorScheme(
+    primary = Leaf40,
     onPrimary = Color.White,
-    primaryContainer = Purple90,
-    onPrimaryContainer = Purple10,
-    secondary = Orange40,
+    primaryContainer = Leaf90,
+    onPrimaryContainer = Leaf10,
+    inversePrimary = Leaf80,
+    secondary = Rain40,
     onSecondary = Color.White,
-    secondaryContainer = Orange90,
-    onSecondaryContainer = Orange10,
-    tertiary = Blue40,
+    secondaryContainer = Rain90,
+    onSecondaryContainer = Rain10,
+    tertiary = Clay40,
     onTertiary = Color.White,
-    tertiaryContainer = Blue90,
-    onTertiaryContainer = Blue10,
+    tertiaryContainer = Clay90,
+    onTertiaryContainer = Clay10,
     error = Red40,
     onError = Color.White,
     errorContainer = Red90,
     onErrorContainer = Red10,
-    background = DarkPurpleGray99,
-    onBackground = DarkPurpleGray10,
-    surface = DarkPurpleGray99,
-    onSurface = DarkPurpleGray10,
-    surfaceVariant = PurpleGray90,
-    onSurfaceVariant = PurpleGray30,
-    inverseSurface = DarkPurpleGray20,
-    inverseOnSurface = DarkPurpleGray95,
-    outline = PurpleGray50,
+    background = Moss98,
+    onBackground = Moss10,
+    surface = Moss98,
+    onSurface = Moss10,
+    surfaceVariant = MossVariant90,
+    onSurfaceVariant = MossVariant30,
+    surfaceDim = Moss87,
+    surfaceBright = Moss98,
+    surfaceContainerLowest = Moss100,
+    surfaceContainerLow = Moss96,
+    surfaceContainer = Moss94,
+    surfaceContainerHigh = Moss92,
+    surfaceContainerHighest = Moss90,
+    surfaceTint = Leaf40,
+    inverseSurface = Moss20,
+    inverseOnSurface = Moss95,
+    outline = MossVariant50,
+    outlineVariant = MossVariant80,
 )
-val DarkDefaultColorScheme = darkColorScheme(
-    primary = Purple80,
-    onPrimary = Purple20,
-    primaryContainer = Purple30,
-    onPrimaryContainer = Purple90,
-    secondary = Orange80,
-    onSecondary = Orange20,
-    secondaryContainer = Orange30,
-    onSecondaryContainer = Orange90,
-    tertiary = Blue80,
-    onTertiary = Blue20,
-    tertiaryContainer = Blue30,
-    onTertiaryContainer = Blue90,
+
+val DarkFloraColorScheme = darkColorScheme(
+    primary = Leaf80,
+    onPrimary = Leaf20,
+    primaryContainer = Leaf30,
+    onPrimaryContainer = Leaf90,
+    inversePrimary = Leaf40,
+    secondary = Rain80,
+    onSecondary = Rain20,
+    secondaryContainer = Rain30,
+    onSecondaryContainer = Rain90,
+    tertiary = Clay80,
+    onTertiary = Clay20,
+    tertiaryContainer = Clay30,
+    onTertiaryContainer = Clay90,
     error = Red80,
     onError = Red20,
     errorContainer = Red30,
     onErrorContainer = Red90,
-    background = DarkPurpleGray10,
-    onBackground = DarkPurpleGray90,
-    surface = DarkPurpleGray10,
-    onSurface = DarkPurpleGray90,
-    surfaceVariant = PurpleGray30,
-    onSurfaceVariant = PurpleGray80,
-    inverseSurface = DarkPurpleGray90,
-    inverseOnSurface = DarkPurpleGray10,
-    outline = PurpleGray60,
+    background = Moss6,
+    onBackground = Moss90,
+    surface = Moss6,
+    onSurface = Moss90,
+    surfaceVariant = MossVariant30,
+    onSurfaceVariant = MossVariant80,
+    surfaceDim = Moss6,
+    surfaceBright = Moss24,
+    surfaceContainerLowest = Moss4,
+    surfaceContainerLow = Moss10,
+    surfaceContainer = Moss12,
+    surfaceContainerHigh = Moss17,
+    surfaceContainerHighest = Moss22,
+    surfaceTint = Leaf80,
+    inverseSurface = Moss90,
+    inverseOnSurface = Moss20,
+    outline = MossVariant60,
+    outlineVariant = MossVariant30,
 )
 
-val LightAndroidColorScheme = lightColorScheme(
-    primary = Green30,
-    onPrimary = Color.White,
-    primaryContainer = Green10,
-    secondary = Amber20,
-    onSecondary = Color.White,
-    secondaryContainer = Amber70,
-    onSecondaryContainer = Amber10,
-    tertiary = Teal40,
-    onTertiary = Color.White,
-    tertiaryContainer = Teal90,
-    onTertiaryContainer = Teal10,
-    error = Red40,
-    onError = Color.White,
-    errorContainer = Red90,
-    onErrorContainer = Red10,
-    background = DarkGreenGray99,
-    onBackground = DarkGreenGray10,
-    surface = DarkGreenGray99,
-    onSurface = DarkGreenGray10,
-    surfaceVariant = GreenGray90,
-    onSurfaceVariant = GreenGray30,
-    inverseSurface = DarkGreenGray20,
-    inverseOnSurface = DarkGreenGray95,
-    outline = GreenGray50,
-)
-
-val DarkAndroidColorScheme = darkColorScheme(
-    primary = Green40,
-    onPrimary = Green20,
-    primaryContainer = Green50,
-    secondary = Amber60,
-    onSecondary = Amber20,
-    secondaryContainer = Amber60,
-    onSecondaryContainer = Amber70,
-    tertiary = Teal80,
-    onTertiary = Teal20,
-    tertiaryContainer = Teal30,
-    onTertiaryContainer = Teal90,
-    error = Red80,
-    onError = Red20,
-    errorContainer = Red30,
-    onErrorContainer = Red90,
-    background = DarkGreenGray10,
-    onBackground = DarkGreenGray90,
-    surface = DarkGreenGray10,
-    onSurface = DarkGreenGray90,
-    surfaceVariant = GreenGray30,
-    onSurfaceVariant = GreenGray80,
-    inverseSurface = DarkGreenGray90,
-    inverseOnSurface = DarkGreenGray10,
-    outline = GreenGray60,
-)
-
-val DarkAndroidGradientColors = GradientColors(container = Color.Black)
-val LightAndroidGradientColors = GradientColors(container = Color.LightGray)
-
-val LightAndroidBackgroundTheme = BackgroundTheme(color = Color.LightGray)
-val DarkAndroidBackgroundTheme = BackgroundTheme(color = Color.Black)
-
+/**
+ * Pliuškis Flora theme. Brand colors always apply: there is no dynamic (wallpaper) color, so the plant-health
+ * colors mean the same thing on every device. Follows the system light/dark setting by default.
+ */
 @Composable
 fun PliuskisTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    androidTheme: Boolean = false,
-    disableDynamicTheming: Boolean = true,
     content: @Composable () -> Unit
 ) {
-
-    // Color scheme
-    val colorScheme = when {
-        androidTheme -> if (darkTheme) DarkAndroidColorScheme else LightAndroidColorScheme
-        !disableDynamicTheming && supportsDynamicTheming() -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-        else -> if (darkTheme) DarkDefaultColorScheme else LightDefaultColorScheme
-    }
-
-    // Gradient colors
-    val emptyGradientColors = GradientColors(container = colorScheme.surfaceColorAtElevation(2.dp))
-    val defaultGradientColors = GradientColors(
-        top = colorScheme.inverseOnSurface,
-        bottom = colorScheme.primaryContainer,
-        container = colorScheme.surface
+    MaterialTheme(
+        colorScheme = if (darkTheme) DarkFloraColorScheme else LightFloraColorScheme,
+        typography = PliuskisTypography,
+        content = content
     )
-    val gradientColors = when {
-        androidTheme -> if (darkTheme) DarkAndroidGradientColors else LightAndroidGradientColors
-        !disableDynamicTheming && supportsDynamicTheming() -> emptyGradientColors
-        else -> defaultGradientColors
-    }
-
-    // Background theme
-    val defaultBackgroundTheme = BackgroundTheme(
-        color = colorScheme.surface,
-        tonalElevation = 2.dp
-    )
-    val backgroundTheme = when {
-        androidTheme -> if (darkTheme) DarkAndroidBackgroundTheme else LightAndroidBackgroundTheme
-        else -> defaultBackgroundTheme
-    }
-
-    val tintTheme = when {
-        androidTheme -> TintTheme()
-        !disableDynamicTheming && supportsDynamicTheming() -> TintTheme(colorScheme.primary)
-        else -> TintTheme()
-    }
-
-    CompositionLocalProvider(
-        LocalGradientColors provides gradientColors,
-        LocalBackgroundTheme provides backgroundTheme,
-        LocalTintTheme provides tintTheme
-    ) {
-        MaterialTheme(
-            colorScheme = colorScheme,
-            typography = PliuskisTypography,
-            content = content
-        )
-    }
 }
-
-@ChecksSdkIntAtLeast(api = Build.VERSION_CODES.S)
-fun supportsDynamicTheming() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S

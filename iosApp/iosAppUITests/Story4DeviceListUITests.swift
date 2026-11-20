@@ -4,14 +4,14 @@ import XCTest
 /// from the shared connectivity state, and opens the control screen for a tapped device.
 ///
 /// The app runs a UI test scenario chosen with the launch argument `-uiTestScenario <name>`: instead of the live
-/// ViewModels, the device list screen (inside the app's real `NavigationStack`) gets fixed Kotlin state objects
+/// ViewModels, the device list screen (inside the app's real `DevicesNavigation`) gets fixed Kotlin state objects
 /// (`DevicesListScreenState`, `DeviceListItem`) and fake callbacks. The scenarios are compiled into the Debug build
 /// only (`#if DEBUG`), so these tests skip themselves in the Release build of this bundle.
 ///
 /// Scenarios and what they feed the screen:
 /// - `devicesLoading`: `Loading`, online.
 /// - `devicesSuccess`: `Success([basil (b1, online), fern (f1, offline)])`, already sorted by Kotlin, online.
-/// - `devicesEmpty`: `Success([])`, online.
+/// - `devicesEmpty`: `Success([])`, online; "Search again" increments `uiTestScenario.retryCount`.
 /// - `devicesError`: `Error`, online; Retry increments a counter shown as `uiTestScenario.retryCount` and keeps the
 ///   state `Error`.
 /// - `devicesOffline`: `Success([basil (b1, online)])`, offline; the button `uiTestScenario.goOnline` (outside the
@@ -64,7 +64,7 @@ final class Story4DeviceListUITests: XCTestCase {
     // AC24
     // GIVEN the state is Success with an empty list
     // WHEN the device list screen is shown
-    // THEN it shows the empty-state text and no rows
+    // THEN it shows the empty-state text, a "Search again" action, and no rows
     @MainActor
     func testStory4_emptySuccessStateShowsEmptyStateText() {
         let app = launch(scenario: "devicesEmpty")
@@ -72,10 +72,27 @@ final class Story4DeviceListUITests: XCTestCase {
         let empty = element(app, "deviceList.empty")
         XCTAssertTrue(empty.waitForExistence(timeout: Self.timeout))
         XCTAssertTrue(
-            empty.label.contains("No devices found"),
+            element(app, "deviceList.empty").staticTexts["No devices yet"].exists,
             "Empty-state text was \"\(empty.label)\""
         )
+        XCTAssertTrue(app.buttons["deviceList.searchAgain"].exists)
         XCTAssertEqual(rows(app).count, 0)
+    }
+
+    // GIVEN the state is Success with an empty list
+    // WHEN the user taps "Search again" once
+    // THEN the screen calls its retry action exactly once (the ViewModel's retry() runs discovery again)
+    @MainActor
+    func testStory4_searchAgainOnEmptyListCallsRetryOnce() {
+        let app = launch(scenario: "devicesEmpty")
+        let searchAgain = app.buttons["deviceList.searchAgain"]
+        let retryCount = element(app, "uiTestScenario.retryCount")
+        XCTAssertTrue(searchAgain.waitForExistence(timeout: Self.timeout))
+        XCTAssertEqual(retryCount.label, "0")
+
+        searchAgain.tap()
+
+        XCTAssertTrue(waitFor(retryCount, label: "1"), "Retry count was \(retryCount.label) after one tap")
     }
 
     // AC25
@@ -146,7 +163,7 @@ final class Story4DeviceListUITests: XCTestCase {
     // AC27
     // GIVEN a Success list with device "basil" (deviceId "b1")
     // WHEN the user taps its row
-    // THEN the control screen opens for deviceId "b1"
+    // THEN the control screen opens for that device, titled with its name
     @MainActor
     func testStory4_tappingDeviceRowOpensControlScreenForItsDeviceId() {
         let app = launch(scenario: "devicesSuccess")
@@ -156,9 +173,9 @@ final class Story4DeviceListUITests: XCTestCase {
         basil.tap()
 
         XCTAssertTrue(element(app, "control.screen").waitForExistence(timeout: Self.timeout))
-        let deviceId = element(app, "control.deviceId")
-        XCTAssertTrue(deviceId.exists)
-        XCTAssertEqual(deviceId.label, "b1")
+        let title = element(app, "control.title")
+        XCTAssertTrue(title.exists)
+        XCTAssertEqual(title.label, "basil")
     }
 
     // AC28 (behaviour)

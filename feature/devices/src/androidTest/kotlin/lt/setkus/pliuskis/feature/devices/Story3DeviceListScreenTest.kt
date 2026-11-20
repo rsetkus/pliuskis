@@ -35,7 +35,7 @@ class Story3DeviceListScreenTest {
 
     private fun render(state: DevicesListScreenState) {
         composeTestRule.setContent {
-            PliuskisTheme { DeviceListScreen(onDeviceClick = {}, devices = state, onRetry = {}) }
+            PliuskisTheme { DeviceListScreen(onDeviceClick = { _, _ -> }, devices = state, onRetry = {}) }
         }
     }
 

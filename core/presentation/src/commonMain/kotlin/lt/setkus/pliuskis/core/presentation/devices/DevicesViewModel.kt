@@ -68,9 +68,14 @@ class DevicesViewModel(
         }
     }
 
-    /** Runs connect-then-discover again after a failure. Ignored while a connect is still running. */
+    /**
+     * Runs connect-then-discover again after a failure, or when nothing was found ("Search again"). Ignored while
+     * devices are shown and while a connect is still running.
+     */
     fun retry() {
-        if (devices.value is Error && connecting.compareAndSet(false, true)) {
+        val state = devices.value
+        val canRetry = state is Error || (state is Success && state.devices.isEmpty())
+        if (canRetry && connecting.compareAndSet(false, true)) {
             attempts.update { it + 1 }
         }
     }

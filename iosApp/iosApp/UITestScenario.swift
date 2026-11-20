@@ -19,11 +19,17 @@ enum UITestScenario: String {
     case devicesOffline
     /// `Success` with thyme (t1), basil (b1) and sage (s1) in that (unsorted) order, online.
     case devicesUnsorted
-    /// List with basil (b1, online); its control screen shows `Success` THIRSTY, LOW, 2026-11-19T10:15:00Z.
+    /// List with basil (b1, online); its control screen shows `Success` THIRSTY (30%), LOW (20%),
+    /// 2026-11-19T10:15:00Z, watering IDLE.
     case controlStatus
+    /// Like `controlStatus`, watering SENDING.
+    case controlWatering
+    /// Like `controlStatus`, watering FAILED.
+    case controlWateringFailed
     /// List with basil (b1, online); its control screen shows `Loading`.
     case controlLoading
-    /// List with basil (b1, online); its control screen shows `Error("UI test scenario error")`.
+    /// List with basil (b1, online); its control screen shows `Error("UI test scenario error")`; Retry counts its calls
+    /// in `uiTestScenario.retryCount`.
     case controlError
     /// List with basil (b1, online); its control screen starts `Loading`, and `uiTestScenario.nextControlState` moves
     /// it to the `controlStatus` state, then to the `controlError` state.
@@ -45,7 +51,8 @@ enum UITestScenario: String {
             Self.success([])
         case .devicesError:
             DevicesListScreenStateError(error: KotlinThrowable(message: "UI test scenario error"))
-        case .devicesOffline, .controlStatus, .controlLoading, .controlError, .controlStateSequence:
+        case .devicesOffline, .controlStatus, .controlWatering, .controlWateringFailed, .controlLoading, .controlError,
+             .controlStateSequence:
             Self.success([Self.device("basil", "b1", online: true)])
         case .devicesUnsorted:
             Self.success([
@@ -64,7 +71,7 @@ enum UITestScenario: String {
     /// scenarios open a control screen that stays `Loading`.
     var controlStates: [ControlUiState] {
         switch self {
-        case .controlStatus:
+        case .controlStatus, .controlWatering, .controlWateringFailed:
             [Self.thirstyAndLow]
         case .controlError:
             [Self.controlFailure]
@@ -72,6 +79,15 @@ enum UITestScenario: String {
             [ControlUiStateLoading.shared, Self.thirstyAndLow, Self.controlFailure]
         default:
             [ControlUiStateLoading.shared]
+        }
+    }
+
+    /// The water button's state.
+    var wateringState: WateringState {
+        switch self {
+        case .controlWatering: .sending
+        case .controlWateringFailed: .failed
+        default: .idle
         }
     }
 
@@ -85,7 +101,9 @@ enum UITestScenario: String {
         data: DeviceStatus(
             humidity: .thirsty,
             waterLevel: .low,
-            updatedAt: KotlinInstant.companion.fromEpochMilliseconds(epochMilliseconds: 1_795_083_300_000)
+            updatedAt: KotlinInstant.companion.fromEpochMilliseconds(epochMilliseconds: 1_795_083_300_000),
+            soilMoisturePercent: 30,
+            waterLevelPercent: 20
         )
     )
 
@@ -123,14 +141,15 @@ struct UITestScenarioView: View {
     }
 
     var body: some View {
-        DevicesNavigation {
+        DevicesNavigation { selection in
             DeviceListScreen(
                 state: scenario.state,
                 isOffline: isOffline,
+                selection: selection,
                 onRetry: { recorder.retryCount += 1 }
             )
-        } control: { deviceId in
-            UITestScenarioControlScreen(deviceId: deviceId, scenario: scenario, recorder: recorder)
+        } control: { route in
+            UITestScenarioControlScreen(route: route, scenario: scenario, recorder: recorder)
         }
         .safeAreaInset(edge: .bottom) {
             HStack {
@@ -155,12 +174,13 @@ struct UITestScenarioView: View {
     }
 }
 
-/// The scenario's control screen: `ControlScreen` with the scenario's state, a water action that counts its calls,
+/// The scenario's control screen: `ControlScreen` with the scenario's state and watering state, water and Retry actions
+/// that count their calls,
 /// en_GB and Europe/Vilnius as locale and time zone. Like `LiveControlScreen` owns `ControlViewModel`, it owns a
 /// ViewModel through `IosViewModelStoreOwner` with `@StateObject`; that one counts `onCleared`, so a test sees the
 /// screen's ViewModel cleared when Back pops the screen.
 private struct UITestScenarioControlScreen: View {
-    let deviceId: String
+    let route: ControlRoute
     let scenario: UITestScenario
     let recorder: UITestScenarioRecorder
 
@@ -171,9 +191,11 @@ private struct UITestScenarioControlScreen: View {
             ClearCountingViewModel(recorder: recorder)
         }
         ControlScreen(
-            deviceId: deviceId,
+            deviceName: route.deviceName,
             state: scenario.controlState(step: recorder.controlStep),
-            onWater: { recorder.waterCount += 1 }
+            wateringState: scenario.wateringState,
+            onWater: { recorder.waterCount += 1 },
+            onRetry: { recorder.retryCount += 1 }
         )
         .environment(\.locale, Locale(identifier: "en_GB"))
         .environment(\.timeZone, TimeZone(identifier: "Europe/Vilnius") ?? .gmt)

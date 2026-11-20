@@ -10,11 +10,14 @@ import XCTest
 /// Production API these tests pin (iosApp target):
 /// ```swift
 /// enum ControlStatusText {
-///     static func humidity(_ status: HumidityStatus) -> String
-///     static func waterLevel(_ status: WaterLevelStatus) -> String
-///     /// The reading time as date and time, for `locale` and in `timeZone`. ControlScreen passes the SwiftUI
-///     /// environment's `\.locale` and `\.timeZone` (the device's settings unless a parent overrides them).
-///     static func updatedAt(_ instant: KotlinInstant, locale: Locale, timeZone: TimeZone) -> String
+///     static func healthTitle(_ status: HumidityStatus) -> String
+///     static func healthMessage(_ status: HumidityStatus) -> String
+///     static func humidity(_ status: HumidityStatus) -> String       // soil moisture caption
+///     static func waterLevel(_ status: WaterLevelStatus) -> String   // water tank caption
+///     static func percent(_ value: Int32, locale: Locale) -> String
+///     /// The reading time: only the time for a reading from today, else day, month and time; for `locale` and in
+///     /// `timeZone`. ControlScreen passes the SwiftUI environment's `\.locale` and `\.timeZone`.
+///     static func updatedAt(_ instant: KotlinInstant, locale: Locale, timeZone: TimeZone, now: Date) -> String
 /// }
 /// ```
 /// `HumidityStatus` and `WaterLevelStatus` are the Swift enums SKIE generates for the Kotlin enums (`CaseIterable`),
@@ -70,44 +73,80 @@ final class Story5ControlStatusTextTests: XCTestCase {
     // AC30
     // GIVEN HumidityStatus THIRSTY and WaterLevelStatus LOW
     // WHEN Swift maps them
-    // THEN the texts say so: the humidity text mentions thirst and the water level text says the water is low
+    // THEN the texts say so: the health card says thirsty, the moisture caption says dry, the tank caption asks for a
+    //   refill
     func testStory5_thirstyAndLowTextsSayThirstyAndLow() {
         XCTAssertTrue(
-            ControlStatusText.humidity(.thirsty).localizedCaseInsensitiveContains("thirsty"),
-            "THIRSTY text was \"\(ControlStatusText.humidity(.thirsty))\""
+            ControlStatusText.healthTitle(.thirsty).localizedCaseInsensitiveContains("thirsty"),
+            "THIRSTY title was \"\(ControlStatusText.healthTitle(.thirsty))\""
         )
         XCTAssertTrue(
-            ControlStatusText.waterLevel(.low).localizedCaseInsensitiveContains("low"),
-            "LOW text was \"\(ControlStatusText.waterLevel(.low))\""
+            ControlStatusText.humidity(.thirsty).localizedCaseInsensitiveContains("dry"),
+            "THIRSTY caption was \"\(ControlStatusText.humidity(.thirsty))\""
+        )
+        XCTAssertTrue(
+            ControlStatusText.waterLevel(.low).localizedCaseInsensitiveContains("refill"),
+            "LOW caption was \"\(ControlStatusText.waterLevel(.low))\""
         )
     }
 
+    // GIVEN each HumidityStatus value
+    // WHEN Swift maps it to the health card's title and message
+    // THEN the two states read differently
+    func testStory5_healthCardTextsDifferPerHumidityStatus() {
+        XCTAssertNotEqual(ControlStatusText.healthTitle(.thirsty), ControlStatusText.healthTitle(.good))
+        XCTAssertNotEqual(ControlStatusText.healthMessage(.thirsty), ControlStatusText.healthMessage(.good))
+    }
+
+    // GIVEN a reading percentage
+    // WHEN Swift formats it for en_GB
+    // THEN it is a whole percentage
+    func testStory5_readingIsFormattedAsWholePercentage() {
+        XCTAssertEqual(ControlStatusText.percent(72, locale: Self.britishEnglish), "72%")
+    }
+
     // AC30
-    // GIVEN lastUpdate 2026-11-19T10:15:00Z, locale en_GB
+    // GIVEN lastUpdate 2026-11-19T10:15:00Z, locale en_GB, and "now" two days later
     // WHEN Swift formats it in UTC and in Europe/Vilnius (UTC+2)
-    // THEN both show the date (19, 2026) and the wall-clock time of their own zone: 10:15 in UTC, 12:15 in Vilnius
+    // THEN both show the day (19) and the wall-clock time of their own zone: 10:15 in UTC, 12:15 in Vilnius
     func testStory5_updateTimeIsFormattedInTheGivenTimeZone() {
-        let inUtc = ControlStatusText.updatedAt(Self.lastUpdate, locale: Self.britishEnglish, timeZone: Self.utc)
-        let inVilnius = ControlStatusText.updatedAt(Self.lastUpdate, locale: Self.britishEnglish, timeZone: Self.vilnius)
+        let now = Date(timeIntervalSince1970: 1_795_256_100) // 2026-11-21T10:15:00Z
+        let inUtc = ControlStatusText.updatedAt(Self.lastUpdate, locale: Self.britishEnglish, timeZone: Self.utc, now: now)
+        let inVilnius = ControlStatusText.updatedAt(
+            Self.lastUpdate, locale: Self.britishEnglish, timeZone: Self.vilnius, now: now
+        )
 
         XCTAssertTrue(inUtc.contains("10:15"), "UTC text was \"\(inUtc)\"")
         XCTAssertTrue(inUtc.contains("19"), "UTC text has no day: \"\(inUtc)\"")
-        XCTAssertTrue(inUtc.contains("2026"), "UTC text has no year: \"\(inUtc)\"")
         XCTAssertTrue(inVilnius.contains("12:15"), "Vilnius text was \"\(inVilnius)\"")
         XCTAssertFalse(inVilnius.contains("10:15"), "Vilnius text shows the UTC time: \"\(inVilnius)\"")
-        XCTAssertTrue(inVilnius.contains("2026"), "Vilnius text has no year: \"\(inVilnius)\"")
+        XCTAssertTrue(inVilnius.contains("19"), "Vilnius text has no day: \"\(inVilnius)\"")
+    }
+
+    // GIVEN lastUpdate 2026-11-19T10:15:00Z and "now" later the same day in UTC
+    // WHEN Swift formats it
+    // THEN only the time shows, as on Android
+    func testStory5_updateTimeFromTodayShowsOnlyTheTime() {
+        let laterToday = Date(timeIntervalSince1970: 1_795_101_300) // 2026-11-19T15:15:00Z
+
+        let text = ControlStatusText.updatedAt(
+            Self.lastUpdate, locale: Self.britishEnglish, timeZone: Self.utc, now: laterToday
+        )
+
+        XCTAssertEqual(text, "10:15")
     }
 
     // AC30
-    // GIVEN lastUpdate 2026-11-19T10:15:00Z in UTC
+    // GIVEN lastUpdate 2026-11-19T10:15:00Z in UTC, not from today
     // WHEN Swift formats it for en_US and for de_DE
     // THEN the texts differ: the format follows the locale, not a fixed pattern
     func testStory5_updateTimeIsFormattedForTheGivenLocale() {
+        let now = Date(timeIntervalSince1970: 1_795_256_100)
         let american = ControlStatusText.updatedAt(
-            Self.lastUpdate, locale: Locale(identifier: "en_US"), timeZone: Self.utc
+            Self.lastUpdate, locale: Locale(identifier: "en_US"), timeZone: Self.utc, now: now
         )
         let german = ControlStatusText.updatedAt(
-            Self.lastUpdate, locale: Locale(identifier: "de_DE"), timeZone: Self.utc
+            Self.lastUpdate, locale: Locale(identifier: "de_DE"), timeZone: Self.utc, now: now
         )
 
         XCTAssertFalse(american.isEmpty)

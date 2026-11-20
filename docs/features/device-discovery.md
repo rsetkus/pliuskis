@@ -1,5 +1,5 @@
 # Device discovery
-**Last verified**: 2026-11-20 (kmp_build_ios_app STORY-5)
+**Last verified**: 2026-11-21
 **Scope**: how the app finds IoT devices and tracks whether they are online (device list screen and the device firmware's MQTT birth/Last Will).
 
 ## Summary
@@ -32,9 +32,15 @@ live changes. This is the same pattern as Home Assistant MQTT discovery and the 
    list, sorted by name, after every event. State lives only in this fold; nothing is cached on disk.
 4. `DevicesViewModel` maps the list to `DevicesListScreenState.Success`. If nothing arrives within 3 s of subscribing it
    emits an empty list, because MQTT has no "end of retained snapshot" marker. The timer starts after the connection
-   succeeds, so a slow connect stays `Loading`. A device's card shows an online/offline indicator.
-5. Tapping a device navigates to `control/{deviceId}`. The control route reads `deviceId` from the route and passes it
-   to `ControlViewModel` (Koin `parametersOf`); status and commands use that same `deviceId`.
+   succeeds, so a slow connect stays `Loading`. A device's row shows Online or Offline (Flora: see
+   `docs/design-system.md`). An empty list shows "No devices yet" with "Search again", which calls
+   `DevicesViewModel.retry()`. `retry` works from `Error` and from an empty `Success`, and is ignored while devices
+   are shown.
+5. Tapping a device opens its detail in the list-detail layout (Android `DevicesListDetail.kt`, a
+   `ListDetailPaneScaffold`). The app fills the detail with the control feature's `ControlPane(deviceId, deviceName,
+   …)`, which creates `ControlViewModel` with Koin (`koinViewModel(key = "control-<id>") { parametersOf(deviceId) }`).
+   Status and commands use that `deviceId`; the name, taken from the list, is only the title. The pane navigator saves
+   the selected id, so it survives process death.
 
 ### Reconnects and foreground refresh
 Discovery messages are retained, so after a reconnect the re-sent SUBSCRIBE brings the whole device list back on its
@@ -60,8 +66,8 @@ Neither path ever publishes a water command; only the user's tap (`ControlViewMo
 
 Error path: a malformed info payload is logged and skipped, and the other devices keep updating. The screen turns into
 `Error` when the connection fails (an exception, or a broker that rejects the connection) or when the subscription
-itself fails. A failed connection never subscribes. On `Error`, the device list shows the generic `ErrorScreen` from `core/designsystem`
-with texts from string resources and a Retry button; the exception is logged, never shown. Retry runs
+itself fails. A failed connection never subscribes. On `Error`, the device list shows the generic `ErrorScreen` from
+`core/designsystem` with texts from string resources and a Retry button; the exception is logged, never shown. Retry runs
 connect-then-discover again (`DevicesViewModel.retry`) and is ignored while a connect is still running, so repeated
 taps start only one connect.
 
@@ -97,50 +103,58 @@ permission in Settings connects. The prompt never shows on the Simulator.
 
 ### iOS device list
 The SwiftUI device list (`iosApp`) shows the same shared `DevicesViewModel` state; Swift only draws it. `RootView`
-puts `LiveDeviceList` inside `DevicesNavigation` (a `NavigationStack`). `LiveDeviceList` owns `DevicesViewModel` and
+puts `LiveDeviceList` inside `DevicesNavigation`, a `NavigationSplitView` that is a stack on iPhone and list beside
+detail on iPad (the counterpart of Android's list-detail). `LiveDeviceList` owns `DevicesViewModel` and
 `NetworkStatusViewModel` through `IosViewModelStoreOwner`, collects both while it is shown, and passes the current
-values to the stateless `DeviceListScreen(state:isOffline:onRetry:)`:
-- `Loading`: a progress indicator; `Success`: a `List` of rows in the order Kotlin sends them (sorted by name in
-  `ObserveDevicesUseCase`; Swift never sorts), each with its type icon, name and Online/Offline; `Success` with no
-  devices (also the 3 s timeout): "No devices found"; `Error`: "Couldn't load your devices" with a Retry button that
-  calls `DevicesViewModel.retry()`. No timer or retry logic in Swift.
+values to the stateless `DeviceListScreen(state:isOffline:selection:onRetry:)`:
+- `Loading`: a progress indicator; `Success`: "Your garden", an inset-grouped `List` of rows in the order Kotlin sends
+  them (sorted by name in `ObserveDevicesUseCase`; Swift never sorts), each with its type symbol in a tinted circle,
+  its name and Online/Offline; `Success` with no devices (also the 3 s timeout): "No devices yet" with a "Search
+  again" button; `Error`: "Couldn't load your devices" with a Retry button. Both buttons call
+  `DevicesViewModel.retry()`. No timer or retry logic in Swift.
 - The offline banner comes from `NetworkStatusViewModel.isOffline` (`shared` iosMain, `createNetworkStatusViewModel()`),
   the iOS counterpart of Android's app-level `PliuskisAppState.isOffline`: `NetworkConnectivity.isOnline` negated,
-  `false` until the monitor reports. The banner sits above the list and doesn't replace it.
-- The bottom toolbar shows a one-line status from the Kotlin state ("5 devices", "Looking for devices…", "Not
-  connected"), marked `story1.kotlinValue` for STORY-1's launch UI test.
-- A tapped row pushes `ControlRoute(deviceId:)`; `DevicesNavigation` opens the control screen it is given for that
-  `deviceId` (`LiveControlScreen` in the app). The list's ViewModels stay alive while the control screen is on top.
+  `false` until the monitor reports. The banner, a Liquid Glass capsule on iOS 26, sits above the list and doesn't
+  replace it.
+- The bottom toolbar shows a one-line status from the Kotlin state ("5 devices · 3 online", "Looking for devices…",
+  "Not connected"), marked `story1.kotlinValue` for STORY-1's launch UI test.
+- A tapped row selects `ControlRoute(deviceId:deviceName:)`; `DevicesNavigation` shows the control screen it is given
+  for that route (`LiveControlScreen` in the app), one screen per device (`.id(deviceId)`). The list's ViewModels
+  stay alive while a control screen shows.
 - Accessibility identifiers: `deviceList.loading`, `deviceList.row.<deviceId>` (label the name, value
-  Online/Offline), `deviceList.empty`, `deviceList.error`, `deviceList.retry`, `deviceList.offlineBanner`,
-  `control.screen`, `control.deviceId`. UI tests drive the screen with fixed states through `-uiTestScenario` (Debug
+  Online/Offline), `deviceList.empty`, `deviceList.searchAgain`, `deviceList.error`, `deviceList.retry`,
+  `deviceList.offlineBanner`, `control.screen`, `control.title`. UI tests drive the screen with fixed states through `-uiTestScenario` (Debug
   only, see `docs/testing.md`).
 
 ### iOS control screen
 `LiveControlScreen` (`iosApp`) owns the shared `ControlViewModel` through `IosViewModelStoreOwner`
-(`createControlViewModel(deviceId)`), collects `controlUiState` while it is shown and passes it to the stateless
-`ControlScreen(deviceId:state:onWater:)`. Opening it connects if needed, publishes one status request and subscribes
+(`createControlViewModel(deviceId)`), collects `controlUiState` and `wateringState` while it is shown and passes them
+to the stateless `ControlScreen(deviceName:state:wateringState:onWater:onRetry:)`. Opening it connects if needed, publishes one status request and subscribes
 to `application/{clientId}/{deviceId}/status`, all in Kotlin, as on Android. Back pops the screen; SwiftUI releases the
 owner, which clears the ViewModel once, and the status subscription sends its UNSUBSCRIBE.
-- `Loading`: a progress indicator. `Success`: soil humidity and water tank rows and the reading time, with the "Water
-  plant" button below; thirsty and low values are orange. `Error`: "Couldn't get the status" (the message is not
-  shown); there is no retry, the user goes back and opens the device again.
-- The button exists only in `Success` and calls `ControlViewModel.waterPlant()` once per tap. As on Android there is no
-  watering state: the screen doesn't change after a tap; the next status reply shows the new reading.
-- `ControlStatusText` maps `HumidityStatus` and `WaterLevelStatus` to text and formats the reading time with
-  `Date.FormatStyle` (abbreviated date, short time) for the environment's `\.locale` and `\.timeZone`. The thresholds
-  stay in Kotlin (`DeviceStatusMapper`); Swift only switches over the enum values.
+- `Loading`: a progress indicator. `Success`: the health card ("Feeling great" or "Thirsty", with "Updated …"),
+  "Conditions" with the soil moisture and water tank readings as percentages, and the "Water now" button pinned below.
+  `Error`: "Can't reach your plant" (the message is not shown) with a Retry button that calls
+  `ControlViewModel.retry()`.
+- The button exists only in `Success` and calls `ControlViewModel.waterPlant()` once per tap. Its label follows
+  `ControlViewModel.wateringState`, as on Android: "Watering…" (SENDING), "Watering started" with a success haptic
+  (STARTED, back to IDLE after 3 s), "Try again" with an error line (FAILED). Kotlin ignores a tap while SENDING.
+- `ControlStatusText` maps `HumidityStatus` and `WaterLevelStatus` to the shared wording and formats the reading time
+  with `Date.FormatStyle` for the environment's `\.locale` and `\.timeZone`: only the time for a reading from today,
+  day, month and time otherwise. The thresholds and the percentages come from Kotlin (`DeviceStatusMapper`); Swift
+  only switches over the enum values.
 - `.refreshOnForeground { viewModel.refresh() }` asks for the status again after a return from the background; the
   Kotlin ViewModel also asks after every automatic reconnect (see "Reconnects and foreground refresh").
-- Accessibility identifiers: `control.screen`, `control.deviceId` (the navigation bar title, label = deviceId, every
-  state), `control.loading`, `control.humidity`, `control.waterLevel`, `control.updatedAt`, `control.water`,
-  `control.error`.
+- Accessibility identifiers: `control.screen`, `control.title` (the navigation bar title, label = device name, every
+  state), `control.loading`, `control.health`, `control.humidity`, `control.waterLevel`, `control.updatedAt`,
+  `control.water`, `control.wateringFailed`, `control.error`, `control.retry`.
 
 ## Key files
-- Screen: `feature/devices/.../DeviceListScreen.kt`, `DeviceTypeIcon.kt` (device type to icon)
+- Screen: `feature/devices/.../DeviceListScreen.kt`, `DevicesListDetail.kt` (list-detail layout);
+  `feature/control/.../ControlScreen.kt` (`ControlPane`)
 - ViewModel and UI state (shared): `core/presentation/.../devices/DevicesViewModel.kt`, `DevicesListScreenState.kt`,
   `DeviceListItem.kt`
-- Error UI: `core/designsystem/.../component/ErrorScreen.kt`
+- Error and empty UI: `core/designsystem/.../component/ErrorScreen.kt`, `InfoScreen.kt` (see `docs/design-system.md`)
 - Use case: `core/domain/.../devicelist/ObserveDevicesUseCase.kt` (+ `DeviceEvent`, `Device`, `DeviceDomainModel`)
 - Reconnects: `core/domain/.../connect/Reconnectable.kt`, `ObserveReconnectsUseCase.kt`;
   `core/data/.../mqttclient/ReconnectListener.kt` (Android); `ControlViewModel` (status request per reconnect,
@@ -154,7 +168,7 @@ owner, which clears the ViewModel once, and the status subscription sends its UN
 - Client ID: `core/data/.../clientid/ClientIdProvider.kt` (+ `ClientIdStore`, `SharedPreferencesClientIdStore`; iOS:
   `core/data/src/iosMain/.../clientid/UserDefaultsClientIdStore.kt`, `shared/src/iosMain/.../InstallClientId.kt`)
 - iOS device list: `iosApp/iosApp/DeviceListScreen.swift`, `LiveDeviceList.swift`, `DevicesNavigation.swift`
-  (`ControlRoute`), `RootView.swift`, `UITestScenario.swift` (Debug only);
+  (`ControlRoute`), `RootView.swift`, `Flora.swift`, `UITestScenario.swift` (Debug only);
   `shared/src/iosMain/.../NetworkStatusViewModel.kt` (offline banner state)
 - iOS control screen: `iosApp/iosApp/LiveControlScreen.swift`, `ControlScreen.swift`, `ControlStatusText.swift`;
   `shared/src/iosMain/.../SharedEntryPoint.kt` (`createControlViewModel`)
@@ -169,8 +183,8 @@ owner, which clears the ViewModel once, and the status subscription sends its UN
   publish through the HiveMQ async API.
 - **Each screen that uses MQTT connects for itself.** Nothing connects at app launch, and the splash screen doesn't wait
   for MQTT. `DevicesViewModel` connects before discovery, and `ControlViewModel` connects before it requests or
-  subscribes to status. The control screen can't rely on the device list: after process death, navigation restores
-  `control/{deviceId}` without composing the device list.
+  subscribes to status. The control screen can't rely on the device list: after process death the Android pane
+  navigator restores the selected device, and its `ControlViewModel` can start before discovery has connected.
 - **HiveMQ throws on a second connect.** `connect()` on a client that is already connected or connecting throws
   `MqttClientStateException`. `HiveMqttClientManager.connect` checks the client state first: connected returns at once,
   and connecting or reconnecting waits for that attempt. A concurrent connect that wins the race (the exception) is

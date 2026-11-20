@@ -10,7 +10,7 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 val controlModule = module {
-    // The control route passes the device id from its navigation argument: koinViewModel { parametersOf(deviceId) }.
+    // ControlPane passes the selected device id: koinViewModel(key = "control-<id>") { parametersOf(deviceId) }.
     viewModel { params ->
         val connectUseCase: ConnectUseCase = get()
         newControlViewModel(

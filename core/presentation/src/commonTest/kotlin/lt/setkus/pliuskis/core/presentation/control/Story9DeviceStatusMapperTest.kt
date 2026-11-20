@@ -93,26 +93,50 @@ class Story9DeviceStatusMapperTest : FunSpec({
     // AC43
     // GIVEN humidity and water level judged independently of each other
     // WHEN a reading with low humidity and enough water is mapped
-    // THEN the status holds exactly the two meanings and the reading Instant, nothing else
+    // THEN the status holds exactly the two meanings, the two percentages and the reading Instant, nothing else
     test("testStory9_statusHoldsBothMeaningsAndReadingInstant") {
         target(reading(humidity = BELOW_THRESHOLD, waterLevel = THRESHOLD)) shouldBe
             DeviceStatus(
                 humidity = HumidityStatus.THIRSTY,
                 waterLevel = WaterLevelStatus.ENOUGH,
                 updatedAt = READ_AT,
+                soilMoisturePercent = 50,
+                waterLevelPercent = 50,
             )
     }
 
     // AC43
     // GIVEN good humidity and a low water level
     // WHEN the reading is mapped
-    // THEN the status holds GOOD, LOW and the reading Instant
+    // THEN the status holds GOOD, LOW, both percentages and the reading Instant
     test("testStory9_goodHumidityWithLowWaterKeepsReadingInstant") {
         target(reading(humidity = ABOVE_THRESHOLD, waterLevel = BELOW_THRESHOLD)) shouldBe
             DeviceStatus(
                 humidity = HumidityStatus.GOOD,
                 waterLevel = WaterLevelStatus.LOW,
                 updatedAt = READ_AT,
+                soilMoisturePercent = 50,
+                waterLevelPercent = 50,
             )
+    }
+
+    // GIVEN readings on the firmware's 0..10 scale
+    // WHEN they are mapped
+    // THEN each becomes a whole percentage
+    test("readingsBecomeWholePercentages") {
+        val status = target(reading(humidity = 7.24f, waterLevel = 10f))
+
+        status.soilMoisturePercent shouldBe 72
+        status.waterLevelPercent shouldBe 100
+    }
+
+    // GIVEN readings outside the 0..10 scale
+    // WHEN they are mapped
+    // THEN the percentages are clamped to 0..100
+    test("readingsOutsideTheScaleAreClamped") {
+        val status = target(reading(humidity = -1f, waterLevel = PLENTY))
+
+        status.soilMoisturePercent shouldBe 0
+        status.waterLevelPercent shouldBe 100
     }
 })
