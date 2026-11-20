@@ -11,6 +11,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -22,6 +23,8 @@ import lt.setkus.pliuskis.core.command.CommandExecutable
 import lt.setkus.pliuskis.core.command.water.ExecuteWaterCommandUseCase
 import lt.setkus.pliuskis.core.connect.ConnectUseCase
 import lt.setkus.pliuskis.core.connect.Connectable
+import lt.setkus.pliuskis.core.connect.ObserveReconnectsUseCase
+import lt.setkus.pliuskis.core.connect.Reconnectable
 import lt.setkus.pliuskis.core.systemstate.GetSystemStatusUseUseCase
 import lt.setkus.pliuskis.core.systemstate.RequestSystemStateUseCase
 import lt.setkus.pliuskis.core.systemstate.SystemStateRequestable
@@ -79,6 +82,11 @@ private class ControlStore {
                     systemStatusUseCase = RequestSystemStateUseCase(calls.requestable()),
                     getSystemStatusUseUseCase = GetSystemStatusUseUseCase(calls.subscribable()),
                     executeCommandUseCase = ExecuteWaterCommandUseCase(calls.waterCommand()),
+                    observeReconnects = ObserveReconnectsUseCase(
+                        object : Reconnectable {
+                            override fun reconnects(): Flow<Unit> = emptyFlow()
+                        }
+                    ),
                     mapper = DeviceStatusMapper(),
                 )
             }

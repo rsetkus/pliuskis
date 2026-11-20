@@ -13,6 +13,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -113,5 +114,15 @@ class HiveMqttClientManager(
                 .topicFilter(topic)
                 .send()
         }
+    }
+
+    /**
+     * The reconnects reported by the [ReconnectListener] that [createMqttClient] adds to the client. A client built
+     * without it (a test double) never reports a reconnect. The configuration is read here, not on construction, so
+     * a test double without a configuration still works for the other calls.
+     */
+    override fun reconnects(): Flow<Unit> {
+        val listener = client.config.connectedListeners.filterIsInstance<ReconnectListener>().firstOrNull()
+        return listener?.reconnects ?: emptyFlow()
     }
 }

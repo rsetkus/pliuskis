@@ -2,6 +2,7 @@ package lt.setkus.pliuskis.data.wire
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.emptyFlow
 import lt.setkus.pliuskis.data.IotManager
 import lt.setkus.pliuskis.data.mqttclient.IotMessage
 import lt.setkus.pliuskis.data.mqttclient.MqttConnectionState
@@ -36,4 +37,7 @@ class RecordingIotManager(
         subscribed += topic
         return messagesByTopicFilter[topic].orEmpty().asFlow()
     }
+
+    /** These tests never reconnect. */
+    override fun reconnects(): Flow<Unit> = emptyFlow()
 }

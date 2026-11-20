@@ -15,10 +15,15 @@ import lt.setkus.pliuskis.data.mqttclient.MqttConnectionState
  *   its result, or [MqttConnectionState.FAILED] if the attempt does not connect within 10 s.
  * - A subscription made with [subscribe] survives a reconnect: the client re-subscribes on its own, and the flow keeps
  *   emitting without being collected again.
+ * - [reconnects] emits once for every CONNACK after a lost connection (the client's automatic reconnect, or a
+ *   [connect] after the connection dropped), and not for the client's first connection. It replays nothing, so a
+ *   collector gets only the reconnects after it started. Messages that are not retained (device status replies) are
+ *   lost while disconnected, so a screen that shows them asks again after each reconnect.
  */
 interface IotManager {
     suspend fun connect(): MqttConnectionState
     fun getClientId(): String
     suspend fun publishString(message: String = "", topic: String)
     fun subscribe(topic: String): Flow<IotMessage>
+    fun reconnects(): Flow<Unit>
 }

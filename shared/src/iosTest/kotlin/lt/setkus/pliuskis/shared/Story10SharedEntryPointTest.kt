@@ -20,8 +20,11 @@ import lt.setkus.pliuskis.core.presentation.control.ControlViewModel
 import lt.setkus.pliuskis.core.presentation.devices.DevicesListScreenState
 import lt.setkus.pliuskis.core.presentation.devices.DevicesViewModel
 import lt.setkus.pliuskis.data.mqttclient.MqttSettings
+import lt.setkus.pliuskis.data.mqttclient.MqttTransport
+import lt.setkus.pliuskis.data.mqttclient.MqttTransportListener
 import lt.setkus.pliuskis.data.mqttclient.TlsMode
 import org.koin.core.context.stopKoin
+import platform.Foundation.NSData
 import kotlin.reflect.KClass
 
 private val settings = MqttSettings(
@@ -30,6 +33,21 @@ private val settings = MqttSettings(
     port = 1883,
     tlsMode = TlsMode.NONE,
 )
+
+/** A broker that refuses every connection: each connect attempt ends at once with a disconnect. */
+private class RefusingMqttTransport : MqttTransport {
+    override var listener: MqttTransportListener? = null
+
+    override fun connect(host: String, port: Int, clientId: String) {
+        listener?.onDisconnected()
+    }
+
+    override fun subscribe(topicFilter: String) = Unit
+
+    override fun unsubscribe(topicFilter: String) = Unit
+
+    override fun publish(topic: String, payload: NSData) = Unit
+}
 
 /**
  * Keeps the ViewModels a test creates through the Swift-facing factories, so the test can clear them (which cancels
@@ -56,7 +74,7 @@ private fun runWithShared(block: suspend TestScope.(SharedHarness) -> Unit) {
     val dispatcher = StandardTestDispatcher()
     Dispatchers.setMain(dispatcher)
     try {
-        initShared(settings)
+        initShared(settings, RefusingMqttTransport())
         runTest(dispatcher) {
             val harness = SharedHarness()
             try {
@@ -73,9 +91,9 @@ private fun runWithShared(block: suspend TestScope.(SharedHarness) -> Unit) {
 
 /**
  * STORY-10: the Swift-facing entry point of the `Shared` framework, called the way Swift calls it. `initShared`
- * starts the iOS Koin graph; the factories create the ViewModels without Swift touching Koin. iOS has no MQTT client
- * yet, so the graph binds `NotImplementedIotManager`, whose connect fails: the device list must end in an Error
- * state, not a thrown exception (AC49). AC50's Swift test (`shared/swift-test`) checks the same first state from
+ * starts the iOS Koin graph; the factories create the ViewModels without Swift touching Koin. The graph gets a
+ * transport whose broker refuses every connection, so connecting fails: the device list must end in an Error state,
+ * not a thrown exception (AC49). AC50's Swift test (`shared/swift-test`) checks the same first state from
  * Swift.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -94,7 +112,7 @@ class Story10SharedEntryPointTest : FunSpec({
     }
 
     // AC49
-    // GIVEN the iOS graph has no real MQTT client (connect fails)
+    // GIVEN the iOS graph's transport refuses the connection (connect fails)
     // WHEN the device list is collected
     // THEN it shows Loading, then Error, and the flow does not throw
     test("testStory10_devicesViewModelWithoutIosMqttClientEndsInErrorState") {

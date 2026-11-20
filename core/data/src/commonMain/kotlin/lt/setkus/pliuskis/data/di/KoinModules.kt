@@ -2,6 +2,7 @@ package lt.setkus.pliuskis.data.di
 
 import lt.setkus.pliuskis.core.command.CommandExecutable
 import lt.setkus.pliuskis.core.connect.Connectable
+import lt.setkus.pliuskis.core.connect.Reconnectable
 import lt.setkus.pliuskis.core.devicelist.DeviceSubscribable
 import lt.setkus.pliuskis.core.systemstate.SystemStateRequestable
 import lt.setkus.pliuskis.core.systemstate.SystemStateSubscribable
@@ -19,6 +20,7 @@ import org.koin.dsl.module
 val dataModule = module {
     factory<SystemStateRequestable> { AwsSystemStateRequest(get()) }
     factory<Connectable> { ConnectMqttSource(get()) }
+    factory<Reconnectable> { ConnectMqttSource(get()) }
     factory<DeviceSubscribable> { SubscribeDeviceTopics(get()) }
     factory<SystemStateSubscribable> { SubscribeSystemStatusTopic(get()) }
     factory<CommandExecutable<String>> { MqttExecuteWaterCommand(get()) }

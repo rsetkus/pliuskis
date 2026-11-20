@@ -54,6 +54,20 @@ class DevicesViewModel(
         initialValue = Loading
     )
 
+    /**
+     * Brings the list up to date, for example when the app returns to the foreground. After a failure it runs
+     * connect-then-discover again ([retry]). Otherwise it connects only if needed: a connected client returns at once,
+     * and a running attempt is waited on, not repeated. The open discovery subscription survives the reconnect, and the
+     * broker replays the retained device state after it.
+     */
+    fun refresh() {
+        if (devices.value is Error) {
+            retry()
+        } else {
+            viewModelScope.launch { connect(Unit).first() }
+        }
+    }
+
     /** Runs connect-then-discover again after a failure. Ignored while a connect is still running. */
     fun retry() {
         if (devices.value is Error && connecting.compareAndSet(false, true)) {

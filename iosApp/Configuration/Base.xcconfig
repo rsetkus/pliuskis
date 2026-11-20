@@ -1,0 +1,26 @@
+// Settings of the iosApp target that Debug and Release share. Each configuration file includes this one.
+//
+// Secrets.xcconfig is gitignored. Create it from the committed template before the first build:
+//   cp iosApp/Configuration/Secrets.template.xcconfig iosApp/Configuration/Secrets.xcconfig
+#include "Secrets.xcconfig"
+
+PRODUCT_NAME = iosApp
+PRODUCT_MODULE_NAME = iosApp
+PRODUCT_BUNDLE_IDENTIFIER = lt.setkus.pliuskis
+INFOPLIST_FILE = iosApp/Info.plist
+IPHONEOS_DEPLOYMENT_TARGET = 17.0
+TARGETED_DEVICE_FAMILY = 1
+SWIFT_VERSION = 5.0
+CODE_SIGN_STYLE = Automatic
+ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon
+ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor
+MARKETING_VERSION = 0.1
+CURRENT_PROJECT_VERSION = 1
+
+// Shared.framework is built and copied here by the "Build Shared framework" Run Script phase
+// (./gradlew :shared:embedAndSignAppleFrameworkForXcode). It is a static framework, so it also needs the C++ runtime.
+FRAMEWORK_SEARCH_PATHS = $(inherited) $(SRCROOT)/../shared/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)
+OTHER_LDFLAGS = $(inherited) -framework Shared -lc++
+
+// The Run Script phase runs Gradle, which reads and writes outside the sandbox Xcode gives scripts.
+ENABLE_USER_SCRIPT_SANDBOXING = NO

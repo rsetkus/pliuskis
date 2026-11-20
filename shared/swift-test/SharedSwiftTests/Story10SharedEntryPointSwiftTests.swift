@@ -11,9 +11,24 @@ final class Story10SharedEntryPointSwiftTests: XCTestCase {
     func testStory10_devicesViewModelFromFactoryStartsLoading() throws {
         let settings = MqttSettings(clientId: "story10swift", host: "localhost", port: 1883, tlsMode: TlsMode.none)
 
-        try SharedEntryPointKt.doInitShared(settings: settings)
+        try SharedEntryPointKt.doInitShared(settings: settings, transport: RefusingMqttTransport())
         let viewModel = SharedEntryPointKt.createDevicesViewModel()
 
         XCTAssertTrue(viewModel.devices.value is DevicesListScreenStateLoading)
     }
+}
+
+/// A broker that refuses every connection: each connect attempt ends at once with a disconnect.
+private final class RefusingMqttTransport: NSObject, MqttTransport {
+    var listener: MqttTransportListener?
+
+    func connect(host: String, port: Int32, clientId: String) {
+        listener?.onDisconnected()
+    }
+
+    func subscribe(topicFilter: String) {}
+
+    func unsubscribe(topicFilter: String) {}
+
+    func publish(topic: String, payload: Data) {}
 }

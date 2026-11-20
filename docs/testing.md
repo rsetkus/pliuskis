@@ -189,9 +189,9 @@ below, and ktlint and detekt over `src/commonMain`, `src/androidMain`, `src/iosM
 `src/iosMain`. It is tested on two levels, both on macOS only:
 
 - **Kotlin:** `src/iosTest/kotlin` calls the API as Swift does (start the graph with `initShared`, create a ViewModel
-  through a factory, collect its state). Koin is process-wide, so each test calls `stopKoin()` afterwards. iOS has no
-  MQTT client yet; the graph binds `NotImplementedIotManager`, so connecting fails and screens end in their Error
-  state. Run: `./gradlew :shared:iosSimulatorArm64Test`.
+  through a factory, collect its state). Koin is process-wide, so each test calls `stopKoin()` afterwards. The tests
+  pass `initShared` a fake `MqttTransport` whose broker refuses every connection, so connecting fails and screens end
+  in their Error state. Run: `./gradlew :shared:iosSimulatorArm64Test`.
 - **Swift:** XCTest cases in `shared/swift-test/SharedSwiftTests` run against the built XCFramework through the Swift
   package `shared/Package.swift` (scheme `SharedSwiftTest`). Koin starts once per process, so only one Swift test may
   call `initShared` with its own settings. Run:
@@ -209,7 +209,53 @@ below, and ktlint and detekt over `src/commonMain`, `src/androidMain`, `src/iosM
   for h in shared/build/XCFrameworks/debug/Shared.xcframework/*/Shared.framework/Headers/Shared.h; do
     grep -nE 'Either|Koin|UseCase|IotManager|Hive|Mqtt3' "$h"; done   # prints nothing
   ```
+  KDoc of exported declarations is copied into the header, so the check also catches these names in comments.
 - **CI:** none of this runs on the Linux runners; `./gradlew test` there runs the module's (empty) Android host tests.
+
+## iOS app tests (`iosApp`)
+
+The SwiftUI app in `iosApp/` has two XCTest targets, both on macOS with Xcode only. Neither runs in CI (the runners
+are Linux).
+
+- **Unit (`iosAppTests`):** Swift logic of the app, e.g. `IosViewModelStoreOwner`. A hosted test bundle with
+  `@testable import iosApp` and `import Shared`. It compiles against `Shared` but doesn't link it
+  (`-disable-autolink-framework Shared`): the Kotlin classes come from the host app, so the process has one Kotlin
+  runtime. A test can subclass a Kotlin class such as `Lifecycle_viewmodelViewModel` in Swift. `CocoaMQTT` is
+  importable in the bundle the same way (a package dependency with `link: false` in `project.yml`).
+- **Broker contract (`iosAppTests`):** tests that drive `CocoaMqttTransport` against a real broker (e.g.
+  `Story2MqttBrokerContractTests`) need the staging Mosquitto on `localhost:1883` (`docker compose up -d --build` in the
+  staging project). Without it they fail with the start command; they don't skip.
+- **UI (`iosAppUITests`):** XCUITest against the launched app. Find elements by accessibility identifier
+  (`.accessibilityIdentifier(...)` in the app).
+- **UI test scenarios:** a screen test that needs a fixed state launches the app with `-uiTestScenario <name>`
+  (`app.launchArguments += ["-uiTestScenario", name]`). `RootView` reads it from the standard UserDefaults (launch
+  arguments land in its argument domain) and shows `UITestScenarioView` instead of the live ViewModels: the real
+  screen inside the real `DevicesNavigation`, fed with fixed Kotlin state objects (e.g. `DevicesListScreenStateSuccess`
+  with `DeviceListItem`s, `ControlUiStateSuccess` with a `DeviceStatus`) and fake callbacks, plus test controls outside
+  the navigation stack (`uiTestScenario.retryCount`, `uiTestScenario.goOnline`, `uiTestScenario.waterCount`,
+  `uiTestScenario.controlClearedCount`, `uiTestScenario.nextControlState`). The control scenarios (`control*`) open a
+  control screen that owns a Swift `Lifecycle_viewmodelViewModel` subclass through `IosViewModelStoreOwner`, so a
+  test sees `onCleared` run on Back. Scenarios are in `iosApp/iosApp/UITestScenario.swift` inside `#if DEBUG`, so the Release
+  build has none; a test that uses them skips itself in Release with `#if !DEBUG ... throw XCTSkip(...)`. Add a case
+  to `UITestScenario` for a new state.
+- **Naming:** class `Story<N><Subject>Tests`, methods `testStory<N>_<description>`.
+- **Setup:** once per checkout, `cp iosApp/Configuration/Secrets.template.xcconfig iosApp/Configuration/Secrets.xcconfig`.
+  Each build runs `./gradlew :shared:embedAndSignAppleFrameworkForXcode`, which needs JDK 17 (found with
+  `/usr/libexec/java_home -v 17` when `JAVA_HOME` is not set).
+- **Commands** (pick a simulator with `xcrun simctl list devices available`):
+  ```bash
+  # Unit and UI tests, Debug
+  xcodebuild test -project iosApp/iosApp.xcodeproj -scheme iosApp \
+    -destination 'platform=iOS Simulator,name=iPhone 17'
+  # UI tests against the Release build (the unit tests need @testable, which Release doesn't enable)
+  xcodebuild test -project iosApp/iosApp.xcodeproj -scheme iosAppUITests -configuration Release \
+    -destination 'platform=iOS Simulator,name=iPhone 17'
+  # Story-scoped
+  xcodebuild test -project iosApp/iosApp.xcodeproj -scheme iosApp \
+    -destination 'platform=iOS Simulator,name=iPhone 17' -only-testing:iosAppTests/Story1ViewModelStoreOwnerTests
+  ```
+- **Simulator architecture:** Gradle builds `Shared` for `iosSimulatorArm64` only, so `project.yml` excludes x86_64
+  from Simulator builds.
 
 ## What kinds of tests to write
 

@@ -6,7 +6,8 @@ import com.hivemq.client.mqtt.mqtt3.Mqtt3Client
 
 /**
  * Builds the HiveMQ client for [settings]. [tlsSetup] is required for [TlsMode.CLIENT_CERTIFICATE] and ignored for
- * [TlsMode.NONE]. Building the client does not connect.
+ * [TlsMode.NONE]. Building the client does not connect. The client reports its reconnects through a
+ * [ReconnectListener] in its configuration ([HiveMqttClientManager.reconnects]).
  */
 fun createMqttClient(settings: MqttSettings, tlsSetup: MqttTlsSetup?): Mqtt3Client {
     val builder = MqttClient.builder()
@@ -14,6 +15,7 @@ fun createMqttClient(settings: MqttSettings, tlsSetup: MqttTlsSetup?): Mqtt3Clie
         .serverHost(settings.host)
         .serverPort(settings.port)
         .automaticReconnectWithDefaultConfig()
+        .addConnectedListener(ReconnectListener())
     val secureBuilder = when (settings.tlsMode) {
         TlsMode.NONE -> builder
         TlsMode.CLIENT_CERTIFICATE -> {

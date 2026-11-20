@@ -11,6 +11,7 @@ import lt.setkus.pliuskis.core.presentation.devices.fromDomainModel
 import lt.setkus.pliuskis.data.di.dataModule
 import lt.setkus.pliuskis.data.di.iosDataModule
 import lt.setkus.pliuskis.data.mqttclient.MqttSettings
+import lt.setkus.pliuskis.data.mqttclient.MqttTransport
 import org.koin.core.context.startKoin
 import org.koin.core.parameter.parametersOf
 import org.koin.dsl.module
@@ -39,25 +40,28 @@ internal val sharedViewModelModule = module {
             systemStatusUseCase = get(),
             getSystemStatusUseUseCase = get(),
             executeCommandUseCase = get(),
+            observeReconnects = get(),
             mapper = DeviceStatusMapper(),
         )
     }
+    factory { NetworkStatusViewModel(connectivity = get()) }
 }
 
 /**
- * Starts the shared object graph with the broker [settings] (Swift: `SharedEntryPointKt.doInitShared(settings:)`).
- * Call it once, before any factory. A later call, while the graph is running, does nothing and keeps the first
- * settings.
+ * Starts the shared object graph with the broker [settings] and the app's MQTT socket [transport] (Swift:
+ * `SharedEntryPointKt.doInitShared(settings:transport:)`, with a `CocoaMqttTransport`). Call it once, before any
+ * factory. A later call, while the graph is running, does nothing and keeps the first settings and transport.
  */
-fun initShared(settings: MqttSettings) {
+fun initShared(settings: MqttSettings, transport: MqttTransport) {
     if (KoinPlatform.getKoinOrNull() == null) {
         startKoin {
             modules(
                 module { single { settings } },
                 dataModule,
-                iosDataModule,
+                iosDataModule(transport),
                 coreModule,
                 sharedViewModelModule,
+                networkStatusLogModule,
             )
         }
     }
@@ -71,3 +75,9 @@ fun createDevicesViewModel(): DevicesViewModel = KoinPlatform.getKoin().get()
  */
 fun createControlViewModel(deviceId: String): ControlViewModel =
     KoinPlatform.getKoin().get { parametersOf(deviceId) }
+
+/**
+ * A new network status ViewModel for the offline banner. Its `isOffline` state follows the phone's connectivity while
+ * it is collected. Call [initShared] first.
+ */
+fun createNetworkStatusViewModel(): NetworkStatusViewModel = KoinPlatform.getKoin().get()

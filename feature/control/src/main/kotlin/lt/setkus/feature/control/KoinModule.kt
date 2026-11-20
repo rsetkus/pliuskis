@@ -20,6 +20,7 @@ val controlModule = module {
             systemStatusUseCase = get(),
             getSystemStatusUseUseCase = get(),
             executeCommandUseCase = get(),
+            observeReconnects = get(),
             mapper = get()
         )
     }
