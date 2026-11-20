@@ -1,0 +1,126 @@
+name: iOS Build
+
+# The macOS job runs on every push to master. On a pull request it runs only when the change touches core/, shared/,
+# iosApp/, build-logic/ or gradle/; otherwise it shows as skipped. The `changes` job decides, on Linux, so a skipped
+# pull request costs no macOS runner.
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  changes:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      ios: ${{ steps.filter.outputs.ios }}
+    steps:
+      # The pull request's changed files, with the old path of a renamed file, as the "Files changed" tab lists them.
+      - name: Match Changed Paths
+        id: filter
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/files" \
+            --jq '.[] | .filename, (.previous_filename // empty)' > "$RUNNER_TEMP/changed-files.txt"
+          cat "$RUNNER_TEMP/changed-files.txt"
+          if grep -qE '^(core|shared|iosApp|build-logic|gradle)/' "$RUNNER_TEMP/changed-files.txt"; then
+            echo "ios=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ios=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  ios:
+    name: macOS (iOS tests)
+    needs: changes
+    # `changes` is skipped on a push, so the condition needs a status function (!cancelled()) to be evaluated at all.
+    if: ${{ !cancelled() && (github.event_name == 'push' || needs.changes.outputs.ios == 'true') }}
+    runs-on: macos-26
+    timeout-minutes: 90
+    env:
+      # Kotlin 2.4.20-2.4.21 supports Xcode 26.4 (compatibility table in AGENTS.md § CI). Bump with Kotlin.
+      XCODE_APP: /Applications/Xcode_26.4.1.app
+      # The iOS 26.4.1 simulator runtime is the one Xcode 26.4.1 ships with; xcodebuild matches OS exactly.
+      IOS_DESTINATION: platform=iOS Simulator,name=iPhone 17,OS=26.4.1
+      HOMEBREW_NO_AUTO_UPDATE: 1
+      HOMEBREW_NO_INSTALL_CLEANUP: 1
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select --switch "$XCODE_APP/Contents/Developer"
+          xcodebuild -version
+
+      # JDK 17 is the minimum for AGP 9.3 and Gradle 9.7 (see AGENTS.md). Xcode's Run Script phase, which builds
+      # Shared through Gradle, uses the same JDK through JAVA_HOME.
+      - name: Set Up JDK
+        uses: actions/setup-java@v6
+        with:
+          java-version: 17
+          distribution: "temurin"
+
+      # Caches the Gradle User Home. v5, not v6: v6 moves caching to a component under separate terms of use.
+      - name: Set Up Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      # The Kotlin/Native compiler and its toolchain (LLVM, sysroots), downloaded per Kotlin version.
+      - name: Cache Kotlin/Native
+        uses: actions/cache@v6
+        with:
+          path: ~/.konan
+          key: konan-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('gradle/libs.versions.toml') }}
+          restore-keys: konan-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Kotlin Tests on iOS Simulator
+        run: >-
+          ./gradlew
+          :core:domain:iosSimulatorArm64Test
+          :core:data:iosSimulatorArm64Test
+          :core:presentation:iosSimulatorArm64Test
+          :shared:iosSimulatorArm64Test
+
+      - name: Build Shared XCFramework
+        run: ./gradlew :shared:assembleSharedDebugXCFramework
+
+      - name: Swift Tests of Shared
+        working-directory: shared
+        run: >-
+          xcodebuild test -scheme SharedSwiftTest -destination "$IOS_DESTINATION"
+          -resultBundlePath "$GITHUB_WORKSPACE/build/xcresults/SharedSwiftTest.xcresult"
+
+      # The broker contract tests in iosAppTests (e.g. Story2MqttBrokerContractTests) need a plaintext, anonymous
+      # Mosquitto on localhost:1883, as the staging broker (staging/README.md). Docker does not run on macOS runners.
+      - name: Start Broker
+        run: |
+          brew install mosquitto
+          printf 'listener 1883\nallow_anonymous true\n' > "$RUNNER_TEMP/mosquitto.conf"
+          "$(brew --prefix mosquitto)/sbin/mosquitto" -c "$RUNNER_TEMP/mosquitto.conf" -d
+          for _ in $(seq 1 20); do
+            nc -z localhost 1883 && exit 0
+            sleep 1
+          done
+          echo "Mosquitto did not start on localhost:1883"
+          exit 1
+
+      - name: iOS App Tests
+        run: |
+          cp iosApp/Configuration/Secrets.template.xcconfig iosApp/Configuration/Secrets.xcconfig
+          xcodebuild test -project iosApp/iosApp.xcodeproj -scheme iosApp -destination "$IOS_DESTINATION" \
+            -resultBundlePath "$GITHUB_WORKSPACE/build/xcresults/iosApp.xcresult"
+
+      - name: Upload Test Reports
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ios-test-reports
+          path: |
+            **/build/test-results/
+            **/build/reports/
+            build/xcresults/
+          if-no-files-found: ignore

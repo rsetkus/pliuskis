@@ -47,6 +47,11 @@ xcodebuild test -project iosApp/iosApp.xcodeproj -scheme iosAppUITests -configur
   -destination 'platform=iOS Simulator,name=iPhone 17'               # UI tests against the Release build
 ```
 
+Release the iOS app to TestFlight (internal testers only) from GitHub Actions, never from a laptop (see § CI):
+```bash
+gh workflow run release-ios.yml --ref master   # or push a version tag: git tag v0.1 && git push origin v0.1
+```
+
 ## CI
 
 Every push runs `.github/workflows/build.yml` on JDK 17 (Temurin), the JDK that AGP 9.3 requires: `./gradlew assemble`, then `./gradlew test`, then
@@ -54,6 +59,32 @@ Every push runs `.github/workflows/build.yml` on JDK 17 (Temurin), the JDK that 
 stopping at the first failure. Pull requests also run the instrumented tests of every module (`./gradlew connectedCheck`
 on an API 29 emulator, `build-ui.yml`). Run the same Gradle steps with JDK 17 before pushing; a newer local JDK can give
 different results. See `docs/testing.md` for the Compose test setup.
+
+The iOS checks run in `.github/workflows/build-ios.yml`, a macOS job on the `macos-26` runner: on every push to `master`,
+and on a pull request only when it changes `core/**`, `shared/**`, `iosApp/**`, `build-logic/**` or `gradle/**` (a
+Linux `changes` job reads the pull request's files; otherwise the macOS job shows as skipped, so a change to only
+`feature/**`, `app/**`, `.github/**` or the root build files is first checked on `master`). It selects Xcode 26.4.1,
+the Xcode that Kotlin 2.4.20-2.4.21 supports ([compatibility table](https://kotlinlang.org/docs/multiplatform/multiplatform-compatibility-guide.html#version-compatibility));
+bump `XCODE_APP` and `IOS_DESTINATION` in the workflow together with `kotlin`. It runs `iosSimulatorArm64Test` of
+`core:domain`, `core:data`, `core:presentation` and `shared`, then `:shared:assembleSharedDebugXCFramework` and
+`xcodebuild test -scheme SharedSwiftTest`, then starts Mosquitto on `localhost:1883` (Homebrew) for the broker contract
+tests and runs `xcodebuild test` of scheme `iosApp` (unit and UI tests) on an iPhone 17 Simulator. It caches Gradle
+(`gradle/actions/setup-gradle`) and `~/.konan`. Every job uploads its test reports when it fails (`android-test-reports`,
+`android-ui-test-reports`, `ios-test-reports` with the `.xcresult` bundles).
+
+The TestFlight release runs in `.github/workflows/release-ios.yml`, started by hand (workflow_dispatch) or by pushing a
+version tag `v*`, never by a pull request. A Linux `guard` job fails for any ref other than `master` or a `v*` tag, so
+the signing job never starts. The `testflight` job (`macos-26`, the same Xcode and JDK 17 as the iOS checks) uses the
+GitHub environment `release` (a required reviewer; deployment refs `master` and `v*` tags), which holds the secrets
+`APPLE_TEAM_ID`, `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_PRIVATE_KEY` (the text of the App Store Connect API key's `.p8`
+file; Admin role) and `BROKER_HOST`; the repository has no secrets of its own. The job writes `Secrets.xcconfig` from its
+template plus `DEVELOPMENT_TEAM` and `BROKER_HOST[config=Release]`, runs `xcodebuild archive` with cloud-managed signing
+(`-allowProvisioningUpdates` with the API key) and `CURRENT_PROJECT_VERSION` set to the run number, then
+`xcodebuild -exportArchive` with `iosApp/ExportOptions.plist`, which uploads the build to TestFlight for internal
+testing only. The repository is public, so the job pins its actions to commit SHAs, prints no secret (xcodebuild
+echoes the API key ID and issuer ID from its command line, masked as `***`), uploads no artifact and deletes the key
+file and `Secrets.xcconfig` at the end. External TestFlight testing stays off until the login work (PLIUS-6) is done;
+`Info.plist` answers export compliance with `ITSAppUsesNonExemptEncryption = NO`.
 
 ## Setup Requirements
 
@@ -69,6 +100,12 @@ different results. See `docs/testing.md` for the Compose test setup.
 
 ## Versions
 Versions live in `gradle/libs.versions.toml`, referenced with `libs.X` notation. Never inline a version.
+
+App version: the version name of both apps is `VERSION_NAME` in `version.properties` (repository root), and nowhere
+else. `app/build.gradle.kts` reads it into `versionName`; `iosApp/Configuration/Base.xcconfig` includes the file and
+sets `MARKETING_VERSION` (`CFBundleShortVersionString`) from it, so it keeps the `KEY = value` form that both Gradle and
+Xcode read. The iOS build number `CURRENT_PROJECT_VERSION` (`CFBundleVersion`) is 1 locally and the workflow run number
+in the release workflow.
 
 Toolchain: the Gradle wrapper, AGP (`androidGradlePlugin`) and Kotlin (`kotlin`, the only Kotlin version entry) must
 stay a set that the Kotlin Gradle plugin supports (see the compatibility table on kotlinlang.org). AGP 9 compiles Kotlin

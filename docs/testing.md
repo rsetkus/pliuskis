@@ -177,9 +177,11 @@ below, and ktlint and detekt over `src/commonMain`, `src/androidMain`, `src/iosM
   - iOS simulator (macOS with Xcode only): `./gradlew <module>:iosSimulatorArm64Test`
   - Both: `./gradlew <module>:allTests`. The reports are in `<module>/build/test-results/testAndroidHostTest` and
     `<module>/build/test-results/iosSimulatorArm64Test`.
-- **CI:** the CI runners are Linux, and Kotlin/Native can't build or run iOS targets there, so it skips them. iOS
-  tests run only on macOS. The plugin's `test` task depends on `testAndroidHostTest`, so CI's `./gradlew test` runs
-  the Android host tests of every shared module, as it runs the unit tests of the Android modules.
+- **CI:** on the Linux runner (`build.yml`) Kotlin/Native can't build or run iOS targets, so it skips them. The
+  plugin's `test` task depends on `testAndroidHostTest`, so `./gradlew test` there runs the Android host tests of every
+  shared module, as it runs the unit tests of the Android modules. The macOS job (`build-ios.yml`) runs
+  `iosSimulatorArm64Test` of `core:domain`, `core:data`, `core:presentation` and `shared` on every push to `master`
+  and on pull requests that change `core/**`, `shared/**`, `iosApp/**`, `build-logic/**` or `gradle/**`.
 - **Generated sources:** KSP writes the Kotest entry points to `build/generated/ksp`. The plugin keeps `build/` out
   of ktlint, so generated code isn't linted.
 
@@ -210,12 +212,18 @@ below, and ktlint and detekt over `src/commonMain`, `src/androidMain`, `src/iosM
     grep -nE 'Either|Koin|UseCase|IotManager|Hive|Mqtt3' "$h"; done   # prints nothing
   ```
   KDoc of exported declarations is copied into the header, so the check also catches these names in comments.
-- **CI:** none of this runs on the Linux runners; `./gradlew test` there runs the module's (empty) Android host tests.
+- **CI:** the macOS job (`build-ios.yml`, same triggers as above) runs `:shared:iosSimulatorArm64Test`, then builds the
+  XCFramework and runs the `SharedSwiftTest` scheme on an iPhone 17 Simulator. On the Linux runner, `./gradlew test`
+  runs only the module's (empty) Android host tests.
 
 ## iOS app tests (`iosApp`)
 
-The SwiftUI app in `iosApp/` has two XCTest targets, both on macOS with Xcode only. Neither runs in CI (the runners
-are Linux).
+The SwiftUI app in `iosApp/` has two XCTest targets, both on macOS with Xcode only. In CI the macOS job
+(`build-ios.yml`, on every push to `master` and on pull requests that change `core/**`, `shared/**`, `iosApp/**`,
+`build-logic/**` or `gradle/**`) runs both through `xcodebuild test -scheme iosApp` on an iPhone 17 Simulator, after it
+copies the Secrets template and starts Mosquitto on `localhost:1883` for the broker contract tests. On failure it
+uploads the `.xcresult` bundles in the `ios-test-reports` artifact. The TestFlight release workflow (`release-ios.yml`,
+AGENTS.md § CI) runs no tests.
 
 - **Unit (`iosAppTests`):** Swift logic of the app, e.g. `IosViewModelStoreOwner`. A hosted test bundle with
   `@testable import iosApp` and `import Shared`. It compiles against `Shared` but doesn't link it
