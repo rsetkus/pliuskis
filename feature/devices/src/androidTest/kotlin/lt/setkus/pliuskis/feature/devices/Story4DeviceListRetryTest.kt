@@ -7,6 +7,7 @@ import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import lt.setkus.pliuskis.core.designsystem.theme.PliuskisTheme
 import lt.setkus.pliuskis.core.presentation.devices.DevicesListScreenState.Error
+import lt.setkus.pliuskis.core.presentation.devices.DevicesListScreenState.Success
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -29,7 +30,7 @@ class Story4DeviceListRetryTest {
         composeTestRule.setContent {
             PliuskisTheme {
                 DeviceListScreen(
-                    onDeviceClick = {},
+                    onDeviceClick = { _, _ -> },
                     devices = Error(Throwable("socket closed")),
                     onRetry = { retries++ }
                 )
@@ -37,6 +38,24 @@ class Story4DeviceListRetryTest {
         }
 
         composeTestRule.onNodeWithText(composeTestRule.activity.getString(R.string.devices_retry)).performClick()
+
+        assertEquals(1, retries)
+    }
+
+    @Test
+    fun testStory4_searchAgainOnEmptyListInvokesRetryCallbackOnce() {
+        var retries = 0
+        composeTestRule.setContent {
+            PliuskisTheme {
+                DeviceListScreen(
+                    onDeviceClick = { _, _ -> },
+                    devices = Success(emptyList()),
+                    onRetry = { retries++ }
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText(composeTestRule.activity.getString(R.string.devices_search_again)).performClick()
 
         assertEquals(1, retries)
     }

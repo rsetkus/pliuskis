@@ -11,7 +11,9 @@ import io.kotest.matchers.types.shouldBeInstanceOf
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher
@@ -59,17 +61,40 @@ private class RetrySubscribable(private val events: Flow<DeviceEvent>) : DeviceS
     override fun subscribeDevices(): Flow<DeviceEvent> = events
 }
 
+/** Finds nothing on the first subscription (it stays silent) and Basil on every later one. */
+private class EmptyFirstSubscribable : DeviceSubscribable {
+    private var subscriptions = 0
+
+    override fun subscribeDevices(): Flow<DeviceEvent> {
+        subscriptions += 1
+        return if (subscriptions == 1) flow { awaitCancellation() } else flowOf(basilInfoEvent())
+    }
+}
+
+private class CountingConnectable : Connectable {
+    var calls = 0
+        private set
+
+    override suspend fun connect(): String {
+        calls += 1
+        return "CONNECTED"
+    }
+}
+
 /** Creates ViewModels through a [ViewModelStore] so each test clears them before Main is reset. */
 private class RetryHarness(val dispatcher: TestDispatcher) {
     private val store = ViewModelStore()
     private var created = 0
 
-    fun devicesViewModel(connectable: Connectable): DevicesViewModel {
+    fun devicesViewModel(
+        connectable: Connectable,
+        subscribable: DeviceSubscribable = RetrySubscribable(flowOf(basilInfoEvent())),
+    ): DevicesViewModel {
         val factory = viewModelFactory {
             initializer {
                 DevicesViewModel(
                     connect = ConnectUseCase(connectable),
-                    observeDevices = ObserveDevicesUseCase(RetrySubscribable(flowOf(basilInfoEvent()))),
+                    observeDevices = ObserveDevicesUseCase(subscribable),
                     mapper = ::fromDomainModel,
                 )
             }
@@ -160,6 +185,48 @@ class Story4DevicesViewModelRetryTest : FunSpec({
                 connectable.calls shouldBe 2
             } finally {
                 connectGate.complete(Unit)
+            }
+        }
+    }
+
+    // GIVEN discovery found no devices
+    // WHEN "Search again" triggers retry
+    // THEN the state goes Loading and then shows the devices the new attempt finds
+    test("searchAgainFromEmptyListRunsDiscoveryAgain") {
+        runRetryTest { harness ->
+            val target = harness.devicesViewModel(CountingConnectable(), EmptyFirstSubscribable())
+
+            target.devices.test {
+                awaitItem() shouldBe Loading
+                awaitItem() shouldBe Success(emptyList())
+
+                target.retry()
+
+                awaitItem() shouldBe Loading
+                awaitItem() shouldBe Success(listOf(basilListItem()))
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+    }
+
+    // GIVEN devices are shown
+    // WHEN retry is triggered
+    // THEN nothing reconnects
+    test("retryWhileDevicesAreShownIsIgnored") {
+        runRetryTest { harness ->
+            val connectable = CountingConnectable()
+            val target = harness.devicesViewModel(connectable)
+
+            target.devices.test {
+                awaitItem() shouldBe Loading
+                awaitItem() shouldBe Success(listOf(basilListItem()))
+
+                target.retry()
+                testScheduler.runCurrent()
+
+                expectNoEvents()
+                connectable.calls shouldBe 1
+                cancelAndIgnoreRemainingEvents()
             }
         }
     }

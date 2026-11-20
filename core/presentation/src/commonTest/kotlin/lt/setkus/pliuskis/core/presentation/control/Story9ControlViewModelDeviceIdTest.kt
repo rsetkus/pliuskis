@@ -138,6 +138,8 @@ class Story9ControlViewModelDeviceIdTest : FunSpec({
                         humidity = HumidityStatus.THIRSTY,
                         waterLevel = WaterLevelStatus.ENOUGH,
                         updatedAt = Instant.fromEpochSeconds(READ_AT_EPOCH_SECONDS),
+                        soilMoisturePercent = 30,
+                        waterLevelPercent = 100,
                     )
                 )
                 testScheduler.runCurrent()

@@ -16,10 +16,10 @@ struct RootView: View {
     }
 
     private var live: some View {
-        DevicesNavigation {
-            LiveDeviceList()
-        } control: { deviceId in
-            LiveControlScreen(deviceId: deviceId)
+        DevicesNavigation { selection in
+            LiveDeviceList(selection: selection)
+        } control: { route in
+            LiveControlScreen(deviceId: route.deviceId, deviceName: route.deviceName)
         }
     }
 }

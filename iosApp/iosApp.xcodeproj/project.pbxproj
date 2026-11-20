@@ -15,6 +15,7 @@
 		2B9C32CCF54756B08C540A6A /* Story1AppLaunchUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020D317F408C507FAE7D7FF3 /* Story1AppLaunchUITests.swift */; };
 		347C26FD866D40DD41C8902D /* CocoaMqttTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4714CF8F148207FF8AA9B987 /* CocoaMqttTransport.swift */; };
 		48DD378078DF4A8575B9DD34 /* Story6ForegroundRefreshTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00B581A263BA5013E6FC8AD4 /* Story6ForegroundRefreshTests.swift */; };
+		507B530A4DCCF275502348E4 /* Flora.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41CBE1197848E24D7BEE233E /* Flora.swift */; };
 		5C78D8759A1D4CEBD3E1D663 /* IosViewModelStoreOwner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D2BDCAFB819148916A14530 /* IosViewModelStoreOwner.swift */; };
 		5FA6C2A1708F0A1430B80F49 /* Story4DeviceListUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BC2A17876140E99F2222B43 /* Story4DeviceListUITests.swift */; };
 		617FFD04E1A05742650EF3AB /* DeviceListScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4B26B0FBADC9E675508CBAF /* DeviceListScreen.swift */; };
@@ -57,6 +58,7 @@
 		2D2BDCAFB819148916A14530 /* IosViewModelStoreOwner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IosViewModelStoreOwner.swift; sourceTree = "<group>"; };
 		310E61D0D729B1CE903AB710 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
 		323906AFB18147ABEDEBDB38 /* iosAppUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = iosAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		41CBE1197848E24D7BEE233E /* Flora.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Flora.swift; sourceTree = "<group>"; };
 		4714CF8F148207FF8AA9B987 /* CocoaMqttTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CocoaMqttTransport.swift; sourceTree = "<group>"; };
 		54761DF4742351425757C370 /* Story3BrokerSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Story3BrokerSettingsTests.swift; sourceTree = "<group>"; };
 		56583BC252B5F01ED9DEA19D /* iosAppTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = iosAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -101,6 +103,7 @@
 				C3CE4D5A0FE4C86755A713C6 /* ControlStatusText.swift */,
 				A4B26B0FBADC9E675508CBAF /* DeviceListScreen.swift */,
 				DBC65CD98B167DDC0ED35FFF /* DevicesNavigation.swift */,
+				41CBE1197848E24D7BEE233E /* Flora.swift */,
 				99A653A53EC1584D8417FA8D /* ForegroundRefresh.swift */,
 				2D2BDCAFB819148916A14530 /* IosViewModelStoreOwner.swift */,
 				EEF1E49D8C5E3BC39463D5CE /* LiveControlScreen.swift */,
@@ -235,7 +238,6 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					78B53CC79860CBFC2F5543C6 = {
-						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 					C6FCE5742C7A4D59A165E213 = {
@@ -325,6 +327,7 @@
 				D0558FAD4A63B8AD01E073C5 /* ControlStatusText.swift in Sources */,
 				617FFD04E1A05742650EF3AB /* DeviceListScreen.swift in Sources */,
 				10661B8C2867FAA544AD449E /* DevicesNavigation.swift in Sources */,
+				507B530A4DCCF275502348E4 /* Flora.swift in Sources */,
 				1D7F53FF8A06A7030C26CF8C /* ForegroundRefresh.swift in Sources */,
 				5C78D8759A1D4CEBD3E1D663 /* IosViewModelStoreOwner.swift in Sources */,
 				C24956548AD98896EA854A6B /* LiveControlScreen.swift in Sources */,
@@ -357,7 +360,7 @@
 		};
 		586731ED97E400C1B162A39B /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			productRef = "TEMP_6FF4D252-4A46-44A2-BFD2-3C89C93208B6" /* CocoaMQTT */;
+			productRef = "TEMP_EE3B91C9-7D4E-41A6-9150-C165B9077B37" /* CocoaMQTT */;
 		};
 		D6369A31B29DDC1641D6E6F0 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -654,7 +657,7 @@
 			package = 6A7B48AA29D950F5023A1223 /* XCRemoteSwiftPackageReference "CocoaMQTT" */;
 			productName = CocoaMQTT;
 		};
-		"TEMP_6FF4D252-4A46-44A2-BFD2-3C89C93208B6" /* CocoaMQTT */ = {
+		"TEMP_EE3B91C9-7D4E-41A6-9150-C165B9077B37" /* CocoaMQTT */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 6A7B48AA29D950F5023A1223 /* XCRemoteSwiftPackageReference "CocoaMQTT" */;
 			productName = CocoaMQTT;

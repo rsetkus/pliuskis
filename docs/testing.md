@@ -102,7 +102,8 @@ that start with a lowercase letter.
   module's `android.jar`. From compileSdk 36 that jar has `Build.VERSION_CODES_FULL`, which LayoutLib lacks, so every
   snapshot fails with `NoSuchElementException` in `Renderer.configureBuildProperties`. `COMPILE_SDK` stays at 35
   (`build-logic/.../Constants.kt`), which also caps AndroidX libraries that need compileSdk 36+ (Lifecycle 2.11,
-  Navigation 2.10, Koin 4.2 through Activity 1.12). Lift both together when Paparazzi moves to 2.x.
+  Navigation 2.10, Koin 4.2 through Activity 1.12, and Compose 1.9+, so the Compose BOM stays at 2025.06.01). Lift
+  both together when Paparazzi moves to 2.x.
 - **Jetifier:** `gradle.properties` lists `android.jetifier.ignorelist=android-base-common,common`, because Jetifier
   can't rewrite LayoutLib's `com.android.tools:common`.
 

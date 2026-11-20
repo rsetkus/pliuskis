@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.DisposableEffect
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import lt.setkus.pliuskis.core.designsystem.theme.PliuskisTheme
@@ -24,7 +25,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            val darkTheme = DARK_THEME
+            val darkTheme = isSystemInDarkTheme()
 
             DisposableEffect(darkTheme) {
                 enableEdgeToEdge(
@@ -40,20 +41,13 @@ class MainActivity : ComponentActivity() {
                 onDispose {}
             }
 
-            PliuskisTheme(
-                darkTheme = darkTheme,
-                androidTheme = false,
-                disableDynamicTheming = false,
-            ) {
+            PliuskisTheme(darkTheme = darkTheme) {
                 // Koin 4 finds the started Koin context itself; the KoinAndroidContext wrapper is no longer needed.
                 PliuskisApp(networkConnectivity)
             }
         }
     }
 }
-
-/** The app is shown in the light theme, as it was once the connection-gated splash screen closed. */
-private const val DARK_THEME = false
 
 private const val LIGHT_ALPHA = 0xe6
 private const val LIGHT_RGB = 0xFF

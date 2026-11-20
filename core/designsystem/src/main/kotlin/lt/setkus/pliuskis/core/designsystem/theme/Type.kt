@@ -35,11 +35,13 @@ internal val PliuskisTypography = Typography(
         lineHeight = 52.sp,
         letterSpacing = 0.sp,
     ),
+    // Sensor readings: tabular figures so values don't shift width as they update.
     displaySmall = TextStyle(
         fontWeight = FontWeight.Normal,
         fontSize = 36.sp,
         lineHeight = 44.sp,
         letterSpacing = 0.sp,
+        fontFeatureSettings = "tnum",
     ),
     headlineLarge = TextStyle(
         fontWeight = FontWeight.Normal,

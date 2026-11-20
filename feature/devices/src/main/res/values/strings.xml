@@ -1,9 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="devices_loading">Loading devices...</string>
-    <string name="devices_empty">No devices found. Make sure your device is powered on and connected.</string>
+    <string name="devices_title">Your garden</string>
+    <plurals name="devices_summary">
+        <item quantity="one">%1$d device · %2$d online</item>
+        <item quantity="other">%1$d devices · %2$d online</item>
+    </plurals>
+    <string name="devices_loading">Looking for your devices…</string>
+    <string name="devices_empty_title">No devices yet</string>
+    <string name="devices_empty">Switch on your Pliuškis device and keep it near Wi-Fi. It shows up here on its own.</string>
+    <string name="devices_search_again">Search again</string>
+    <string name="devices_choose_title">Choose a device</string>
+    <string name="devices_choose_message">Pick a device from your garden to see how your plant is doing.</string>
     <string name="device_online">Online</string>
     <string name="device_offline">Offline</string>
+    <string name="device_type_plant">Plant sensor</string>
+    <string name="device_type_unknown">Unknown device</string>
     <string name="devices_error_title">Couldn\'t load your devices</string>
     <string name="devices_error_message">Check your internet connection and try again.</string>
     <string name="devices_retry">Retry</string>

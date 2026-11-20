@@ -1,40 +1,42 @@
 import XCTest
 
-/// STORY-5: the SwiftUI control screen shows the state the shared `ControlViewModel` produces (humidity, water level,
-/// last update time, the water button, the error view) and Back returns to the device list, clearing the screen's
-/// ViewModel once.
+/// STORY-5: the SwiftUI control screen shows the state the shared `ControlViewModel` produces (the health card, the
+/// soil moisture and water tank readings, the last update time, the water button with its watering feedback, the error
+/// view with Retry) and Back returns to the device list, clearing the screen's ViewModel once.
 ///
 /// The app runs a UI test scenario chosen with `-uiTestScenario <name>` (Debug build only, `#if DEBUG`, so these tests
 /// skip themselves in Release). Each control scenario shows the device list `Success([basil (b1, online)])` inside the
-/// app's real `DevicesNavigation`; tapping basil pushes the control screen, which gets a fixed Kotlin
-/// `ControlUiState` instead of the live ViewModel, and a fake water action. Test controls sit outside the navigation
-/// stack, so they stay on screen after Back:
+/// app's real `DevicesNavigation`; tapping basil opens the control screen, which gets a fixed Kotlin
+/// `ControlUiState` and watering state instead of the live ViewModel, and fake water and Retry actions. Test controls
+/// sit outside the navigation, so they stay on screen after Back:
 /// - `uiTestScenario.waterCount`: how many times the screen called its water action (the ViewModel's `waterPlant()`
 ///   in the live app);
+/// - `uiTestScenario.retryCount`: how many times the screen called its Retry action (the ViewModel's `retry()`);
 /// - `uiTestScenario.controlClearedCount`: how many times the control screen's ViewModel was cleared. The scenario's
 ///   control screen owns a Swift `Lifecycle_viewmodelViewModel` subclass that counts `onCleared`, through
 ///   `IosViewModelStoreOwner` held with `@StateObject`, the same way the live control screen owns `ControlViewModel`;
 /// - `uiTestScenario.nextControlState` (only in `controlStateSequence`): moves the control state one step.
 ///
 /// Scenarios:
-/// - `controlStatus`: `Success(DeviceStatus(humidity: .thirsty, waterLevel: .low, updatedAt: 2026-11-19T10:15:00Z))`.
-///   The scenario fixes the control screen's SwiftUI environment to `\.locale` en_GB and `\.timeZone` Europe/Vilnius
-///   (UTC+2 that day), so the shown time is 12:15.
+/// - `controlStatus`: `Success(DeviceStatus(humidity: .thirsty, waterLevel: .low, updatedAt: 2026-11-19T10:15:00Z,
+///   soilMoisturePercent: 30, waterLevelPercent: 20))`, watering IDLE. The scenario fixes the control screen's SwiftUI
+///   environment to `\.locale` en_GB and `\.timeZone` Europe/Vilnius (UTC+2 that day), so the shown time is 12:15.
+/// - `controlWatering`, `controlWateringFailed`: as `controlStatus`, watering SENDING or FAILED.
 /// - `controlLoading`: `Loading`.
 /// - `controlError`: `Error(message: "UI test scenario error")`.
 /// - `controlStateSequence`: starts `Loading`; `uiTestScenario.nextControlState` moves to the `controlStatus` Success,
 ///   then to `Error`.
 ///
-/// Watering states (AC32): the Android control screen (`feature/control` `ControlScreen`) has no separate watering
-/// state. `waterPlant()` changes no UI state; the "Add water" button exists only in `Success`, enabled, and stays
-/// enabled and unchanged after a tap. `Loading` shows the loading indicator and `Error` the error view, both without
-/// the button. The iOS screen shows the same states in the same order: Loading (no button) -> Success (enabled
-/// button) -> Error (no button).
+/// Watering states (AC32): as on Android (`feature/control` `ControlScreen`), the water button exists only in
+/// `Success`. Its label follows the shared `ControlViewModel.wateringState`: "Water now" (IDLE), "Watering…" (SENDING),
+/// "Watering started" (STARTED), "Try again" with an error line (FAILED). The scenarios pass a fixed watering state, so
+/// a tap there changes nothing on screen. `Loading` shows the loading indicator and `Error` the error view with Retry,
+/// both without the water button: Loading (no button) -> Success (enabled button) -> Error (no button).
 ///
 /// Accessibility identifiers the screen provides:
-/// `control.screen` (whole screen, every state), `control.deviceId` (label = deviceId, every state; STORY-4's AC27
-/// test uses both), `control.loading`, `control.humidity`, `control.waterLevel`, `control.updatedAt`, `control.water`
-/// (the button), `control.error`.
+/// `control.screen` (whole screen, every state), `control.title` (label = device name, every state; STORY-4's AC27
+/// test uses both), `control.loading`, `control.health`, `control.humidity`, `control.waterLevel`,
+/// `control.updatedAt`, `control.water` (the button), `control.wateringFailed`, `control.error`, `control.retry`.
 final class Story5ControlScreenUITests: XCTestCase {
 
     private static let timeout: TimeInterval = 10
@@ -47,14 +49,16 @@ final class Story5ControlScreenUITests: XCTestCase {
     }
 
     // AC30
-    // GIVEN a control state Success with HumidityStatus THIRSTY, WaterLevelStatus LOW and lastUpdate
+    // GIVEN a control state Success with HumidityStatus THIRSTY (30%), WaterLevelStatus LOW (20%) and lastUpdate
     //   2026-11-19T10:15:00Z, locale en_GB and time zone Europe/Vilnius
     // WHEN the control screen of b1 is shown
-    // THEN it shows the THIRSTY and LOW display texts and the update time formatted by Swift in that zone (12:15)
+    // THEN the health card says thirsty, the tiles show the percentages with the dry and refill captions, and the
+    //   update time is formatted by Swift in that zone (12:15, with the day, as the reading is not from today)
     @MainActor
     func testStory5_statusStateShowsHumidityWaterLevelAndUpdateTime() {
         let app = openControlScreen(scenario: "controlStatus")
 
+        let health = element(app, "control.health")
         let humidity = element(app, "control.humidity")
         let waterLevel = element(app, "control.waterLevel")
         let updatedAt = element(app, "control.updatedAt")
@@ -62,21 +66,27 @@ final class Story5ControlScreenUITests: XCTestCase {
         XCTAssertTrue(waterLevel.exists)
         XCTAssertTrue(updatedAt.exists)
 
-        XCTAssertTrue(humidity.label.localizedCaseInsensitiveContains("thirsty"), "Humidity was \"\(humidity.label)\"")
-        XCTAssertTrue(waterLevel.label.localizedCaseInsensitiveContains("low"), "Water level was \"\(waterLevel.label)\"")
+        XCTAssertTrue(health.label.localizedCaseInsensitiveContains("thirsty"), "Health was \"\(health.label)\"")
+        XCTAssertTrue(humidity.label.contains("30"), "Humidity was \"\(humidity.label)\"")
+        XCTAssertTrue(humidity.label.localizedCaseInsensitiveContains("dry"), "Humidity was \"\(humidity.label)\"")
+        XCTAssertTrue(waterLevel.label.contains("20"), "Water level was \"\(waterLevel.label)\"")
+        XCTAssertTrue(
+            waterLevel.label.localizedCaseInsensitiveContains("refill"),
+            "Water level was \"\(waterLevel.label)\""
+        )
         XCTAssertTrue(updatedAt.label.contains("12:15"), "Update time was \"\(updatedAt.label)\"")
         XCTAssertFalse(updatedAt.label.contains("10:15"), "Update time is in UTC: \"\(updatedAt.label)\"")
         XCTAssertTrue(updatedAt.label.contains("19"), "Update time has no day: \"\(updatedAt.label)\"")
-        XCTAssertTrue(updatedAt.label.contains("2026"), "Update time has no year: \"\(updatedAt.label)\"")
-        XCTAssertEqual(element(app, "control.deviceId").label, "b1")
+        XCTAssertEqual(element(app, "control.title").label, "basil")
         XCTAssertFalse(element(app, "control.loading").exists)
         XCTAssertFalse(element(app, "control.error").exists)
     }
 
     // AC32
-    // GIVEN the control screen in the status state and no water tap counted yet
+    // GIVEN the control screen in the status state (watering IDLE) and no water tap counted yet
     // WHEN the user taps the water button once
-    // THEN the water action was called exactly once, and the button stays shown, enabled and unchanged (like Android)
+    // THEN the water action was called exactly once; with the scenario's fixed watering state the button stays shown,
+    //   enabled and unchanged
     @MainActor
     func testStory5_tappingWaterCallsWaterActionOnceAndButtonStaysEnabled() {
         let app = openControlScreen(scenario: "controlStatus")
@@ -99,17 +109,44 @@ final class Story5ControlScreenUITests: XCTestCase {
         XCTAssertEqual(water.label, labelBeforeTap)
     }
 
+    // GIVEN the watering state SENDING
+    // WHEN the control screen is shown
+    // THEN the water button says it is watering, and no failure line shows
+    @MainActor
+    func testStory5_sendingWateringStateShowsWateringOnTheButton() {
+        let app = openControlScreen(scenario: "controlWatering")
+        let water = app.buttons["control.water"]
+
+        XCTAssertTrue(water.waitForExistence(timeout: Self.timeout))
+        XCTAssertTrue(water.label.localizedCaseInsensitiveContains("watering"), "Button was \"\(water.label)\"")
+        XCTAssertFalse(element(app, "control.wateringFailed").exists)
+    }
+
+    // GIVEN the watering state FAILED
+    // WHEN the control screen is shown
+    // THEN a failure line shows above the button, and the button offers to try again
+    @MainActor
+    func testStory5_failedWateringStateShowsFailureAndTryAgain() {
+        let app = openControlScreen(scenario: "controlWateringFailed")
+        let water = app.buttons["control.water"]
+
+        XCTAssertTrue(water.waitForExistence(timeout: Self.timeout))
+        XCTAssertTrue(element(app, "control.wateringFailed").exists)
+        XCTAssertTrue(water.label.localizedCaseInsensitiveContains("try again"), "Button was \"\(water.label)\"")
+        XCTAssertTrue(water.isEnabled)
+    }
+
     // AC32
     // GIVEN the control state Loading
     // WHEN the control screen is shown
-    // THEN it shows the loading indicator and no water button (Android shows only its loading wheel)
+    // THEN it shows the loading indicator and no water button (as on Android)
     @MainActor
     func testStory5_loadingStateShowsLoadingIndicatorAndNoWaterButton() {
         let app = openControlScreen(scenario: "controlLoading")
 
         XCTAssertTrue(element(app, "control.loading").waitForExistence(timeout: Self.timeout))
         XCTAssertFalse(app.buttons["control.water"].exists)
-        XCTAssertEqual(element(app, "control.deviceId").label, "b1")
+        XCTAssertEqual(element(app, "control.title").label, "basil")
     }
 
     // AC32
@@ -138,7 +175,7 @@ final class Story5ControlScreenUITests: XCTestCase {
     // AC33
     // GIVEN the control state Error
     // WHEN the control screen is shown
-    // THEN it shows the error view, without status values or the water button
+    // THEN it shows the error view with Retry, without status values or the water button
     @MainActor
     func testStory5_errorStateShowsErrorView() {
         let app = openControlScreen(scenario: "controlError")
@@ -146,9 +183,26 @@ final class Story5ControlScreenUITests: XCTestCase {
         let error = element(app, "control.error")
         XCTAssertTrue(error.waitForExistence(timeout: Self.timeout))
         XCTAssertFalse(error.label.isEmpty)
+        XCTAssertTrue(app.buttons["control.retry"].exists)
         XCTAssertFalse(app.buttons["control.water"].exists)
         XCTAssertFalse(element(app, "control.humidity").exists)
         XCTAssertFalse(element(app, "control.loading").exists)
+    }
+
+    // GIVEN the control state Error
+    // WHEN the user taps Retry once
+    // THEN the screen calls its retry action exactly once (the ViewModel's retry() connects again)
+    @MainActor
+    func testStory5_tappingRetryCallsRetryOnce() {
+        let app = openControlScreen(scenario: "controlError")
+        let retry = app.buttons["control.retry"]
+        let retryCount = element(app, "uiTestScenario.retryCount")
+        XCTAssertTrue(retry.waitForExistence(timeout: Self.timeout))
+        XCTAssertEqual(retryCount.label, "0")
+
+        retry.tap()
+
+        XCTAssertTrue(waitFor(retryCount, label: "1"), "Retry count was \(retryCount.label) after one tap")
     }
 
     // AC33
