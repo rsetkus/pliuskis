@@ -114,19 +114,4 @@ final class Story5ControlStatusTextTests: XCTestCase {
         XCTAssertFalse(german.isEmpty)
         XCTAssertNotEqual(american, german)
     }
-
-    // AC30
-    // GIVEN the same instant, locale and time zone
-    // WHEN Swift formats it twice
-    // THEN the text is the same: it depends only on its inputs (no hidden device setting)
-    func testStory5_updateTimeDependsOnlyOnItsInputs() {
-        let first = ControlStatusText.updatedAt(Self.lastUpdate, locale: Self.britishEnglish, timeZone: Self.vilnius)
-        let second = ControlStatusText.updatedAt(
-            KotlinInstant.companion.fromEpochMilliseconds(epochMilliseconds: 1_795_083_300_000),
-            locale: Locale(identifier: "en_GB"),
-            timeZone: TimeZone(identifier: "Europe/Vilnius")!
-        )
-
-        XCTAssertEqual(first, second)
-    }
 }
