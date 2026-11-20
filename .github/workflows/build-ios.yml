@@ -45,8 +45,8 @@ jobs:
     env:
       # Kotlin 2.4.20-2.4.21 supports Xcode 26.4 (compatibility table in AGENTS.md § CI). Bump with Kotlin.
       XCODE_APP: /Applications/Xcode_26.4.1.app
-      # The iOS 26.4 runtime is the one Xcode 26.4.1 ships with.
-      IOS_DESTINATION: platform=iOS Simulator,name=iPhone 17,OS=26.4
+      # The iOS 26.4.1 simulator runtime is the one Xcode 26.4.1 ships with; xcodebuild matches OS exactly.
+      IOS_DESTINATION: platform=iOS Simulator,name=iPhone 17,OS=26.4.1
       HOMEBREW_NO_AUTO_UPDATE: 1
       HOMEBREW_NO_INSTALL_CLEANUP: 1
     steps:
