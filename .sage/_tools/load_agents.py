@@ -27,12 +27,17 @@ import yaml
 # ---------------------------------------------------------------------------
 
 def load_config(config_path=None):
-    """Load sage-config.yaml. Searches CWD, script parent, and walks up."""
+    """Load sage-config.yaml. Searches CWD, script parent, and walks up.
+
+    project.absolute_root_dir is always set to the directory that holds the
+    loaded sage-config.yaml, so it follows the checkout (clone, worktree, moved
+    folder). A value written in the file is ignored.
+    """
     if config_path is not None:
         p = Path(config_path)
         if not p.exists():
             raise FileNotFoundError(f"Config not found: {config_path}")
-        return _read_yaml(p)
+        return _with_derived_root(_read_yaml(p), p)
 
     candidates = []
     cwd_config = Path("sage-config.yaml")
@@ -55,7 +60,7 @@ def load_config(config_path=None):
     parse_errors = []
     for c in candidates:
         try:
-            return _read_yaml(c)
+            return _with_derived_root(_read_yaml(c), c)
         except Exception as e:
             parse_errors.append(f"{c}: {e}")
 
@@ -70,6 +75,14 @@ def load_config(config_path=None):
 def _read_yaml(path):
     with open(path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f) or {}
+
+
+def _with_derived_root(config, config_path):
+    """Set project.absolute_root_dir to the directory of config_path."""
+    project = config.get("project") or {}
+    project["absolute_root_dir"] = str(Path(config_path).resolve().parent)
+    config["project"] = project
+    return config
 
 
 # ---------------------------------------------------------------------------
@@ -262,12 +275,9 @@ def validate_config(config):
     project = config.get("project", {})
     if not project.get("name"):
         raise ValueError("project.name is required and cannot be empty")
-    # absolute_root_dir is OPTIONAL: find_sage_dir() falls back through
-    # paths.sage_dir -> project.root_dir -> ./.sage when it's omitted. Both
-    # bundled configs in this repo (repo-root sage-config.yaml and
-    # examples/static-site-generator/sage-config.yaml) intentionally omit it
-    # so they're portable; setup_project.py writes an absolute path here for
-    # real installed projects.
+    # absolute_root_dir is never read from the file: load_config() sets it to
+    # the directory that holds sage-config.yaml, so a config committed to git
+    # works in every clone and worktree.
 
     team = config.get("team", {})
     if not team.get("name"):
@@ -294,7 +304,7 @@ def load_agents_for_mode(mode):
             return {"success": False, "error": f"No agents configured for mode '{mode}'"}
 
         script_dir = Path(__file__).parent.parent
-        project_root = Path(config.get("project", {}).get("root_dir", "."))
+        project_root = Path(config["project"]["absolute_root_dir"])
         sage_dir = find_sage_dir(config)
 
         # Load base template (shared boilerplate)

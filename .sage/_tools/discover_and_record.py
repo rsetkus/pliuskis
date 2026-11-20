@@ -235,14 +235,17 @@ def main():
     parser.add_argument("--dry-run", action="store_true", help="List what would be recorded without writing")
     args = parser.parse_args()
 
+    # The project root is the directory that holds sage-config.yaml, so the
+    # slug follows the checkout (clone, worktree, moved folder).
     config = load_config()
-    abs_root = (config.get("project") or {}).get("absolute_root_dir")
+    config_path = find_sage_config()
+    abs_root = str(config_path.resolve().parent) if config_path is not None else None
     if args.project_slug:
         project_slug = args.project_slug
     elif abs_root:
         project_slug = project_root_to_slug(abs_root)
     else:
-        print(json.dumps({"success": False, "error": "no --project-slug given and sage-config.yaml has no project.absolute_root_dir"}))
+        print(json.dumps({"success": False, "error": "no --project-slug given and no sage-config.yaml found from the current directory"}))
         sys.exit(1)
 
     # Resolve session scope:

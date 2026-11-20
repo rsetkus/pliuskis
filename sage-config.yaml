@@ -4,7 +4,8 @@
 project:
   name: "pliuskis"
   root_dir: "."
-  absolute_root_dir: '/Users/rsetkus/projects/pliuskis'
+  # No absolute_root_dir: the tools use the directory that holds this file, so the config works in every clone and
+  # worktree. A value set here is ignored.
 
 team:
   name: "pliuskis-feature-team"
