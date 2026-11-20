@@ -33,6 +33,20 @@ Build the iOS framework and run its tests (macOS with Xcode only):
 xcodebuild test -scheme SharedSwiftTest -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 
+Build and test the iOS app `iosApp/` (macOS with Xcode only; the Run Script phase builds `Shared` through Gradle, so
+JDK 17 must be installed). Once per checkout, copy the settings template:
+```bash
+cp iosApp/Configuration/Secrets.template.xcconfig iosApp/Configuration/Secrets.xcconfig
+xcodebuild -project iosApp/iosApp.xcodeproj -scheme iosApp -configuration Debug \
+  -destination 'platform=iOS Simulator,name=iPhone 17' build        # also -configuration Release
+xcodebuild -project iosApp/iosApp.xcodeproj -scheme iosApp -configuration Release \
+  -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build  # device (iosArm64) build, unsigned
+xcodebuild test -project iosApp/iosApp.xcodeproj -scheme iosApp \
+  -destination 'platform=iOS Simulator,name=iPhone 17'               # unit and UI tests, Debug
+xcodebuild test -project iosApp/iosApp.xcodeproj -scheme iosAppUITests -configuration Release \
+  -destination 'platform=iOS Simulator,name=iPhone 17'               # UI tests against the Release build
+```
+
 ## CI
 
 Every push runs `.github/workflows/build.yml` on JDK 17 (Temurin), the JDK that AGP 9.3 requires: `./gradlew assemble`, then `./gradlew test`, then
@@ -93,7 +107,15 @@ feature/               — Android only: Compose UI, navigation, Koin wiring of 
   devices/             — Device list screen
   control/             — Device control screen
 shared/                — iOS umbrella KMP module: builds the static framework `Shared` (iosArm64, iosSimulatorArm64)
-                         with SKIE; Swift API `initShared(settings)` and the ViewModel factories (iosMain)
+                         with SKIE; Swift API `initShared(settings, transport)`, the ViewModel factories and `ScreenViewModels`
+                         (iosMain)
+iosApp/                — SwiftUI iOS app (iOS 17), not a Gradle module: links `Shared` through a Run Script phase
+                         (`./gradlew :shared:embedAndSignAppleFrameworkForXcode`); no CocoaPods or KMMBridge, Swift
+                         dependencies come from Swift Package Manager. `iosApp.xcodeproj` is generated from
+                         `project.yml` with XcodeGen (`xcodegen generate` in `iosApp/`); commit both. Settings come
+                         from `Configuration/*.xcconfig`; `Secrets.xcconfig` is gitignored, copy its template
+                         `Secrets.template.xcconfig`. App sources in `iosApp/iosApp`, tests in `iosAppTests` (unit)
+                         and `iosAppUITests` (UI)
 build-logic/           — Gradle convention plugins (application, library, feature, compose, quality)
 ```
 
@@ -101,14 +123,19 @@ build-logic/           — Gradle convention plugins (application, library, feat
 
 **Use Cases** — every business operation is a use case implementing `BaseUseCase<T, R>`. They return `Flow<Either<Throwable, R>>` using Arrow-kt for error handling.
 
-**IoT/MQTT** — `IotManager` is the abstract interface (commonMain); `HiveMqttClientManager` is the HiveMQ implementation (androidMain). iOS has no MQTT client yet: `iosDataModule` binds `NotImplementedIotManager` (iosMain), whose connect always fails. `app`'s `brokerModule` picks the debug or production `MqttSettings` from `BuildConfig` and passes them to `core/data` through Koin; `core/data` reads no `BuildConfig`. Device communication is message-based via MQTT topics.
+**IoT/MQTT** — `IotManager` is the abstract interface (commonMain); `HiveMqttClientManager` is the HiveMQ implementation (androidMain). On iOS the socket is CocoaMQTT (Swift, SwiftPM, pinned in `iosApp/project.yml`): `CocoaMqttTransport` (`iosApp`) implements the Kotlin `MqttTransport` protocol and is passed to `initShared`; `IosMqttClientManager` (`core/data` iosMain, `internal`) implements `IotManager` over it and owns the contract logic (one connect attempt, the 10 s wait, re-subscribe after every CONNACK, unsubscribe on cancel, topic matching, UTF-8). `iosDataModule(transport)` binds it, and `NetworkConnectivity` to `IosNetworkConnectivity` over `NWPathMonitor`. `app`'s `brokerModule` picks the debug or production `MqttSettings` from `BuildConfig` and passes them to `core/data` through Koin; `core/data` reads no `BuildConfig`. Device communication is message-based via MQTT topics.
 
 **Dependency Injection** — Koin; each module declares its own Koin module (e.g., `dataModule`, `devicesModule`), all loaded in `MyApplication`. A shared module splits its bindings into a common module and a platform module: `core/data` has `dataModule` (commonMain), `androidDataModule` (androidMain) and `iosDataModule` (iosMain); the app loads the first two, `initShared` the first and the last.
 
 **State management** — ViewModels live in `core/presentation` (commonMain, the multiplatform `androidx.lifecycle.ViewModel`) and expose `StateFlow`; UI state sealed classes follow the `Loading / Success / Error` pattern (e.g., `DevicesListScreenState`). A ViewModel gets its arguments through its constructor (e.g. `ControlViewModel(deviceId, ...)`); the Android navigation layer reads the route argument and passes it with Koin `parametersOf`. UI state holds meanings, not display text (e.g. `HumidityStatus.THIRSTY`); each platform maps them to its own text.
 
-**Swift API (`shared`)** — Swift calls `initShared(settings)` once (it starts Koin; a second call does nothing), then
-creates ViewModels with `createDevicesViewModel()` and `createControlViewModel(deviceId)`. Swift never sees Koin, use
+**Swift API (`shared`)** — Swift calls `initShared(settings, transport)` once (it starts Koin; a second call does nothing),
+with `MqttSettings` from `BrokerConfiguration` (host from `BROKER_HOST` of the xcconfig, via Info.plist) and the
+per-install client ID from `installClientId()` (kept in UserDefaults), then
+creates ViewModels with `createDevicesViewModel()`, `createControlViewModel(deviceId)` and
+`createNetworkStatusViewModel()` (the offline banner state; Android keeps it app-level in `PliuskisAppState`). A SwiftUI screen owns its
+ViewModels through `IosViewModelStoreOwner` (`iosApp`, held with `@StateObject`), which keeps them in a Kotlin
+`ScreenViewModels` (an androidx `ViewModelStore`) and clears it when the screen goes away, so `onCleared` runs once. Swift never sees Koin, use
 cases, `Either` or `IotManager`: `shared` exports only `core:presentation`; `MqttSettings` and `TlsMode` get exact
 Swift names with `@ObjCName(exact = true)`; declarations Swift must not use are `internal` or `@HiddenFromObjC` (e.g.
 `newControlViewModel`, which Android uses because the `ControlViewModel` constructor is `internal`). A Flow exposed to

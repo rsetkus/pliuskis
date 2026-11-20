@@ -19,3 +19,7 @@ pliuskis.env
 .kotlin/
 # Sage feature-team working files (specs, stories, progress)
 _output/
+# iosApp: per-developer settings (copy Secrets.template.xcconfig) and Xcode user state
+iosApp/Configuration/Secrets.xcconfig
+xcuserdata/
+DerivedData/

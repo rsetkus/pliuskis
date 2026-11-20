@@ -12,6 +12,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -24,6 +25,8 @@ import lt.setkus.pliuskis.core.command.CommandExecutable
 import lt.setkus.pliuskis.core.command.water.ExecuteWaterCommandUseCase
 import lt.setkus.pliuskis.core.connect.ConnectUseCase
 import lt.setkus.pliuskis.core.connect.Connectable
+import lt.setkus.pliuskis.core.connect.ObserveReconnectsUseCase
+import lt.setkus.pliuskis.core.connect.Reconnectable
 import lt.setkus.pliuskis.core.devicelist.DeviceEvent
 import lt.setkus.pliuskis.core.devicelist.DeviceSubscribable
 import lt.setkus.pliuskis.core.devicelist.ObserveDevicesUseCase
@@ -99,6 +102,11 @@ private class SwiftFacingHarness {
                     executeCommandUseCase = ExecuteWaterCommandUseCase(
                         object : CommandExecutable<String> {
                             override suspend fun execute(i: String) = Unit
+                        }
+                    ),
+                    observeReconnects = ObserveReconnectsUseCase(
+                        object : Reconnectable {
+                            override fun reconnects(): Flow<Unit> = emptyFlow()
                         }
                     ),
                     mapper = DeviceStatusMapper(),

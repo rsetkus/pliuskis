@@ -1,0 +1,131 @@
+# XcodeGen spec of iosApp.xcodeproj. The generated project is committed, so building needs only Xcode. After changing
+# this file, regenerate the project from iosApp/ with `xcodegen generate` and commit both.
+name: iosApp
+options:
+  bundleIdPrefix: lt.setkus.pliuskis
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+  generateEmptyDirectories: false
+# Swift dependencies come from Swift Package Manager, pinned here (they are not Gradle dependencies, so
+# gradle/libs.versions.toml does not apply). CocoaMQTT is the MQTT socket (MQTT 3.1.1, chosen in the PLIUS-7 spike).
+packages:
+  CocoaMQTT:
+    url: https://github.com/emqx/CocoaMQTT
+    exactVersion: 2.4.2
+configs:
+  Debug: debug
+  Release: release
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    # Gradle builds Shared for iosArm64 and iosSimulatorArm64 only, so no target builds an x86_64 Simulator slice.
+    "EXCLUDED_ARCHS[sdk=iphonesimulator*]": x86_64
+targets:
+  iosApp:
+    type: application
+    platform: iOS
+    sources:
+      - path: iosApp
+        excludes:
+          - Info.plist
+    configFiles:
+      Debug: Configuration/Debug.xcconfig
+      Release: Configuration/Release.xcconfig
+    dependencies:
+      - package: CocoaMQTT
+        product: CocoaMQTT
+    info:
+      path: iosApp/Info.plist
+      properties:
+        CFBundleDisplayName: Pliuskis
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        BrokerHost: $(BROKER_HOST)
+        # The app talks to the MQTT broker on the local network; iOS asks the user once with this text. No Bonjour,
+        # so no NSBonjourServices.
+        NSLocalNetworkUsageDescription: Pliuskis connects to the MQTT broker on your local network to find your plant devices, show their status and water them.
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+    preBuildScripts:
+      - name: Build Shared framework
+        basedOnDependencyAnalysis: false
+        script: |
+          # Builds the Kotlin framework Shared for this configuration and SDK, and copies it to
+          # shared/build/xcode-frameworks/$CONFIGURATION/$SDK_NAME (FRAMEWORK_SEARCH_PATHS in Base.xcconfig).
+          # Gradle needs JDK 17; Xcode does not see the shell's JAVA_HOME, so fall back to the installed JDK 17.
+          if [ -z "$JAVA_HOME" ]; then
+            JAVA_HOME="$(/usr/libexec/java_home -v 17 2>/dev/null)"
+            export JAVA_HOME
+          fi
+          cd "$SRCROOT/.."
+          ./gradlew :shared:embedAndSignAppleFrameworkForXcode
+  iosAppTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: iosAppTests
+    dependencies:
+      - target: iosApp
+      # Importable for the broker contract tests; not linked, the classes come from the host app (like Shared).
+      - package: CocoaMQTT
+        product: CocoaMQTT
+        link: false
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: lt.setkus.pliuskis.tests
+        IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+        CODE_SIGN_STYLE: Automatic
+        # Compiles against Shared; the classes come from the host app at run time, so the bundle does not link a
+        # second copy of the static framework.
+        FRAMEWORK_SEARCH_PATHS: $(inherited) $(SRCROOT)/../shared/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)
+        OTHER_SWIFT_FLAGS: $(inherited) -Xfrontend -disable-autolink-framework -Xfrontend Shared
+  iosAppUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: iosAppUITests
+    dependencies:
+      - target: iosApp
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: lt.setkus.pliuskis.uitests
+        IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+        CODE_SIGN_STYLE: Automatic
+        TEST_TARGET_NAME: iosApp
+schemes:
+  iosApp:
+    build:
+      targets:
+        iosApp: all
+        iosAppTests: [test]
+        iosAppUITests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - iosAppTests
+        - iosAppUITests
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
+  # Only the UI tests, so they can also run against the Release build (the unit tests need @testable, which Release
+  # does not enable): xcodebuild test -scheme iosAppUITests -configuration Release ...
+  iosAppUITests:
+    build:
+      targets:
+        iosApp: all
+        iosAppUITests: [test]
+    test:
+      config: Debug
+      targets:
+        - iosAppUITests

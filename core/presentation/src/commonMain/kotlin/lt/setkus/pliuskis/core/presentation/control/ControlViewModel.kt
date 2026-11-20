@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import lt.setkus.pliuskis.core.command.water.ExecuteWaterCommandUseCase
+import lt.setkus.pliuskis.core.connect.ObserveReconnectsUseCase
 import lt.setkus.pliuskis.core.presentation.control.ControlUiState.Success
 import lt.setkus.pliuskis.core.systemstate.GetSystemStatusUseUseCase
 import lt.setkus.pliuskis.core.systemstate.RequestSystemStateUseCase
@@ -28,15 +29,21 @@ private const val STOP_TIMEOUT_MILLIS = 5_000L
  * State of the control screen of one device. The caller passes [deviceId]; on Android the navigation layer reads it
  * from the route.
  *
+ * Device status replies are not retained, so the ViewModel asks for the status once connected, again after every
+ * automatic reconnect of the MQTT client while it is alive, and again on [refresh]. None of these sends a water
+ * command; only [waterPlant] does.
+ *
  * Other modules create it with [newControlViewModel]: the constructor takes use cases, which stay out of the Swift API
  * of the `shared` framework.
  */
+@Suppress("LongParameterList")
 class ControlViewModel internal constructor(
     private val deviceId: String,
-    connect: suspend () -> Either<Throwable, String>,
-    systemStatusUseCase: RequestSystemStateUseCase,
+    private val connect: suspend () -> Either<Throwable, String>,
+    private val systemStatusUseCase: RequestSystemStateUseCase,
     getSystemStatusUseUseCase: GetSystemStatusUseUseCase,
     private val executeCommandUseCase: ExecuteWaterCommandUseCase,
+    observeReconnects: ObserveReconnectsUseCase,
     mapper: (SystemState) -> DeviceStatus,
 ) : ViewModel() {
 
@@ -49,7 +56,10 @@ class ControlViewModel internal constructor(
     init {
         viewModelScope.launch {
             if (connection.await().isRight()) {
-                systemStatusUseCase(deviceId).collect()
+                requestStatus()
+                observeReconnects(Unit).collect { reconnect ->
+                    if (reconnect.isRight()) requestStatus()
+                }
             }
         }
     }
@@ -81,6 +91,21 @@ class ControlViewModel internal constructor(
     fun waterPlant() {
         executeCommandUseCase(deviceId).stateIn(viewModelScope, SharingStarted.Eagerly, Unit)
     }
+
+    /**
+     * Asks for the device's status again, for example when the app returns to the foreground. It connects first only
+     * if needed: connecting a connected client returns at once, and a running attempt is waited on, not repeated.
+     * Never sends a water command.
+     */
+    fun refresh() {
+        viewModelScope.launch {
+            if (connect().isRight()) requestStatus()
+        }
+    }
+
+    private suspend fun requestStatus() {
+        systemStatusUseCase(deviceId).collect()
+    }
 }
 
 /**
@@ -96,6 +121,7 @@ fun newControlViewModel(
     systemStatusUseCase: RequestSystemStateUseCase,
     getSystemStatusUseUseCase: GetSystemStatusUseUseCase,
     executeCommandUseCase: ExecuteWaterCommandUseCase,
+    observeReconnects: ObserveReconnectsUseCase,
     mapper: (SystemState) -> DeviceStatus,
 ): ControlViewModel = ControlViewModel(
     deviceId = deviceId,
@@ -103,6 +129,7 @@ fun newControlViewModel(
     systemStatusUseCase = systemStatusUseCase,
     getSystemStatusUseUseCase = getSystemStatusUseUseCase,
     executeCommandUseCase = executeCommandUseCase,
+    observeReconnects = observeReconnects,
     mapper = mapper,
 )
 
