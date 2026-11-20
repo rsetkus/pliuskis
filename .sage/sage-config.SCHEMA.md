@@ -13,7 +13,6 @@ for any agent -- those live in `<project_root>/.sage/sage-<agent>-config.yaml`.
 project:
   name: "MyProject"
   root_dir: "."
-  absolute_root_dir: "/abs/path/to/MyProject"
 
 team:
   name: "myproject-feature-team"
@@ -45,14 +44,13 @@ limits:
 project:
   name: "static-site-generator"                             # str
   root_dir: "."                                             # str (relative)
-  absolute_root_dir: "/abs/path/to/static-site-generator"   # str (absolute) -- on Windows: "C:\\path\\to\\static-site-generator"
 ```
 
 | Field | Required | Purpose |
 |---|---|---|
 | `name` | yes | Project identifier (used in team names, logs) |
 | `root_dir` | yes | Relative path to project root (from where the loader runs) |
-| `absolute_root_dir` | yes | Absolute path. Used to find `.sage/`, given to agents that may run in subprocesses |
+| `absolute_root_dir` | no -- ignored | Never written in the file. The tools set it at runtime to the directory that holds `sage-config.yaml`, so a committed config works in every clone and git worktree. Used to find `.sage/` and given to agents as `{PROJECT_ROOT}` |
 
 ---
 
@@ -104,13 +102,13 @@ paths:
 | Field | Required | Default | Purpose |
 |---|---|---|---|
 | `output_dir` | yes | -- | Where the Skill writes specs and progress files (relative to project root) |
-| `sage_dir` | no | `<absolute_root_dir>/.sage` | Where the loader looks for per-agent instruction configs |
+| `sage_dir` | no | `<directory of sage-config.yaml>/.sage` | Where the loader looks for per-agent instruction configs |
 
 ### Locating `.sage/`
 
 The loader searches in this order:
 1. `paths.sage_dir` if set (relative or absolute path)
-2. `<absolute_root_dir>/.sage`
+2. `<absolute_root_dir>/.sage` (the directory that holds `sage-config.yaml`)
 3. `<root_dir>/.sage`
 4. `./.sage` (cwd fallback)
 
@@ -159,7 +157,7 @@ The loader substitutes these `{VAR}` placeholders into every agent prompt:
 | `{AGENT_NAME}` | Agent class name (e.g., `Tester`) |
 | `{AGENT_NAME_SLUG}` | Slug used in `.sage/sage-<slug>-config.yaml` (e.g., `tester`) |
 | `{PROJECT_NAME}` | `project.name` |
-| `{PROJECT_ROOT}` | `project.absolute_root_dir` |
+| `{PROJECT_ROOT}` | the directory that holds `sage-config.yaml` |
 | `{TEAM_NAME}` | `team.name` |
 | `{DEV_TEST_TEAM_NAME}` | `team.dev_test_team_name` |
 | `{OUTPUT_DIR}` | `paths.output_dir` |
