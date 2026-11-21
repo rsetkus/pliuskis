@@ -8,8 +8,9 @@ import Shared
 /// It only moves packets and reports what happens; the `IotManager` contract (one connect attempt at a time, the
 /// 10 s wait, re-subscribing after every CONNACK, topic matching, UTF-8) is in Kotlin. The session is clean and
 /// CocoaMQTT reconnects on its own after a lost connection; every attempt, including an automatic one, is reported
-/// as `onConnecting`, then `onConnected` (CONNACK accepted) or `onDisconnected`. CocoaMQTT calls back on the main
-/// queue.
+/// as `onConnecting`, then `onConnected` (CONNACK accepted) or `onDisconnected`. A publish returns CocoaMQTT's packet
+/// identifier (-1 when it refuses the message) and its PUBACK is reported as `onPublishAcknowledged`; Kotlin waits for
+/// it, because CocoaMQTT also queues a QoS 1 message while disconnected. CocoaMQTT calls back on the main queue.
 final class CocoaMqttTransport: NSObject, MqttTransport {
     private static let log = Logger(subsystem: "lt.setkus.pliuskis", category: "mqtt")
 
@@ -34,8 +35,13 @@ final class CocoaMqttTransport: NSObject, MqttTransport {
         mqtt?.unsubscribe(topicFilter)
     }
 
-    func publish(topic: String, payload: Data) {
-        mqtt?.publish(CocoaMQTTMessage(topic: topic, payload: [UInt8](payload), qos: .qos1, retained: false))
+    func publish(topic: String, payload: Data) -> Int32 {
+        let message = CocoaMQTTMessage(topic: topic, payload: [UInt8](payload), qos: .qos1, retained: false)
+        let messageId = mqtt?.publish(message) ?? -1
+        if messageId < 0 {
+            Self.log.error("MQTT publish on \(topic, privacy: .public) refused")
+        }
+        return Int32(clamping: messageId)
     }
 
     /// The one CocoaMQTT client of this transport, created on the first connect, set to these settings.
@@ -69,6 +75,9 @@ final class CocoaMqttTransport: NSObject, MqttTransport {
         }
         client.didReceiveMessage = { [weak self] _, message, _ in
             self?.listener?.onMessage(topic: message.topic, payload: Data(message.payload))
+        }
+        client.didPublishAck = { [weak self] _, messageId in
+            self?.listener?.onPublishAcknowledged(messageId: Int32(messageId))
         }
         return client
     }

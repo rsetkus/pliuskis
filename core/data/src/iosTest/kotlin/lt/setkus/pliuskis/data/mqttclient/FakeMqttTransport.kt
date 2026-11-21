@@ -10,13 +10,14 @@ import platform.posix.memcpy
 /**
  * Stands in for the Swift CocoaMQTT transport. It records every call the Kotlin client makes (the packets it would
  * send to the broker), and lets a test play the broker's side: accept a connection (CONNACK), drop it, start an
- * automatic reconnect, and deliver a PUBLISH.
+ * automatic reconnect, deliver a PUBLISH, and acknowledge a published message (PUBACK). Each publish gets the next
+ * packet identifier, starting at 1, unless [refusePublishes] makes it return -1 as CocoaMQTT does when it refuses one.
  */
 class FakeMqttTransport : MqttTransport {
 
     data class ConnectCall(val host: String, val port: Int, val clientId: String)
 
-    class PublishCall(val topic: String, val payload: ByteArray)
+    class PublishCall(val topic: String, val payload: ByteArray, val messageId: Int)
 
     override var listener: MqttTransportListener? = null
 
@@ -24,6 +25,8 @@ class FakeMqttTransport : MqttTransport {
     val subscribes = mutableListOf<String>()
     val unsubscribes = mutableListOf<String>()
     val publishes = mutableListOf<PublishCall>()
+    var refusePublishes = false
+    private var lastMessageId = 0
 
     override fun connect(host: String, port: Int, clientId: String) {
         connectCalls += ConnectCall(host, port, clientId)
@@ -37,8 +40,10 @@ class FakeMqttTransport : MqttTransport {
         unsubscribes += topicFilter
     }
 
-    override fun publish(topic: String, payload: NSData) {
-        publishes += PublishCall(topic, payload.toByteArray())
+    override fun publish(topic: String, payload: NSData): Int {
+        val messageId = if (refusePublishes) -1 else ++lastMessageId
+        publishes += PublishCall(topic, payload.toByteArray(), messageId)
+        return messageId
     }
 
     /** The broker accepted the connection: a CONNACK with return code 0. */
@@ -49,6 +54,9 @@ class FakeMqttTransport : MqttTransport {
 
     /** The transport started an automatic reconnect attempt on its own. */
     fun startAutomaticReconnect() = requireListener().onConnecting()
+
+    /** The broker answers PUBACK for the message published with [messageId]. */
+    fun acknowledgePublish(messageId: Int) = requireListener().onPublishAcknowledged(messageId)
 
     /** The broker delivers a PUBLISH whose payload is exactly [payload]. */
     fun deliver(topic: String, payload: ByteArray) = requireListener().onMessage(topic, payload.toNSData())

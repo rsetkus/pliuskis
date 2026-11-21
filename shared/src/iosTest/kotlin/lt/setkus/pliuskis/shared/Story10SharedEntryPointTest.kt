@@ -46,7 +46,7 @@ private class RefusingMqttTransport : MqttTransport {
 
     override fun unsubscribe(topicFilter: String) = Unit
 
-    override fun publish(topic: String, payload: NSData) = Unit
+    override fun publish(topic: String, payload: NSData): Int = -1
 }
 
 /**

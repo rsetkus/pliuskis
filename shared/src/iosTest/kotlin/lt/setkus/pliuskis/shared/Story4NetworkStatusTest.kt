@@ -54,7 +54,7 @@ private class Story4SilentTransport : MqttTransport {
 
     override fun unsubscribe(topicFilter: String) = Unit
 
-    override fun publish(topic: String, payload: NSData) = Unit
+    override fun publish(topic: String, payload: NSData): Int = -1
 }
 
 /** Keeps the [NetworkStatusViewModel] a test creates, so it can be cleared before Main is reset. */

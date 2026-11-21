@@ -53,7 +53,7 @@ private class Story3DeniedLocalNetworkTransport : MqttTransport {
 
     override fun unsubscribe(topicFilter: String) = Unit
 
-    override fun publish(topic: String, payload: NSData) = Unit
+    override fun publish(topic: String, payload: NSData): Int = -1
 
     /** The socket failed: local network access is denied. */
     fun reportDenied() =

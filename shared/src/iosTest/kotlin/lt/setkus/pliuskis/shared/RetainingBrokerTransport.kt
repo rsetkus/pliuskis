@@ -6,8 +6,10 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.usePinned
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.resetMain
@@ -27,7 +29,9 @@ import platform.posix.memcpy
  * Stands in for the Swift CocoaMQTT transport and plays a small broker behind it, so a test can drive the real iOS
  * graph (`initShared`) through an app background / foreground cycle:
  *
- * - it records every CONNECT ([connectCalls]), SUBSCRIBE ([subscribes]) and PUBLISH ([publishes]) the app sends;
+ * - it records every CONNECT ([connectCalls]), SUBSCRIBE ([subscribes]) and PUBLISH ([publishes]) the app sends,
+ *   and answers a PUBLISH made while connected with PUBACK on the Main dispatcher, as CocoaMQTT calls back on the main
+ *   queue (a PUBLISH while disconnected is queued and never acknowledged, as in CocoaMQTT);
  * - the test decides when the broker answers a CONNECT ([acceptConnection]) and when the socket dies
  *   ([dropConnection], what happens to the socket while iOS suspends the app);
  * - like Mosquitto it keeps retained messages ([retain]): a SUBSCRIBE while connected gets every matching retained
@@ -42,6 +46,7 @@ internal class RetainingBrokerTransport : MqttTransport {
 
     var connectCalls = 0
         private set
+    private var lastMessageId = 0
     val subscribes = mutableListOf<String>()
     val publishes = mutableListOf<Publish>()
 
@@ -66,8 +71,13 @@ internal class RetainingBrokerTransport : MqttTransport {
         activeFilters -= topicFilter
     }
 
-    override fun publish(topic: String, payload: NSData) {
+    override fun publish(topic: String, payload: NSData): Int {
         publishes += Publish(topic, payload.decodeUtf8())
+        val messageId = ++lastMessageId
+        if (connected) {
+            CoroutineScope(Dispatchers.Main).launch { requireListener().onPublishAcknowledged(messageId) }
+        }
+        return messageId
     }
 
     /** The broker accepts the running CONNECT: a CONNACK with return code 0. */

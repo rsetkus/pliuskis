@@ -173,7 +173,10 @@ class Story2IosMqttClientManagerTest : FunSpec({
             val manager = IosMqttClientManager(transport, settings)
             connect(manager, transport)
 
-            manager.publishString("""{"command":"water"}""", "t/x")
+            val sent = async { manager.publishString("""{"command":"water"}""", "t/x") }
+            runCurrent()
+            transport.acknowledgePublish(transport.publishes.single().messageId)
+            sent.await()
 
             val published = transport.publishes.single()
             published.topic shouldBe "t/x"

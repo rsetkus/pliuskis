@@ -1,5 +1,5 @@
 # Device discovery
-**Last verified**: 2026-11-21 (kmp_ci_cd_release STORY-4 / PLIUS-32)
+**Last verified**: 2026-11-21 (kmp_ci_cd_release STORY-4 / PLIUS-32; iOS publish waits for the PUBACK)
 **Scope**: how the app finds IoT devices and tracks whether they are online (device list screen and the device firmware's MQTT birth/Last Will).
 
 ## Summary
@@ -75,7 +75,8 @@ taps start only one connect.
 iOS uses the same topics and the same shared code from `ConnectUseCase` up; only the `IotManager` differs. The MQTT
 socket is CocoaMQTT (Swift, MQTT 3.1.1, clean session, automatic reconnect), wrapped as `CocoaMqttTransport` in
 `iosApp` and passed to `initShared` as the Kotlin `MqttTransport`. The transport only moves packets and reports
-`onConnecting` / `onConnected` (CONNACK accepted) / `onDisconnected` / `onMessage`. `IosMqttClientManager`
+`onConnecting` / `onConnected` (CONNACK accepted) / `onDisconnected` / `onMessage` / `onPublishAcknowledged` (PUBACK
+of the packet identifier that `publish` returned). `IosMqttClientManager`
 (`core/data` iosMain) implements the `IotManager` contract on top:
 - one connect attempt at a time: `connect()` on a connected client returns at once; while an attempt runs (a caller's
   or CocoaMQTT's automatic reconnect) it waits for that attempt, up to 10 s, and returns `FAILED` if it doesn't
@@ -84,7 +85,10 @@ socket is CocoaMQTT (Swift, MQTT 3.1.1, clean session, automatic reconnect), wra
   for every open `subscribe` flow; the broker then replays the retained snapshot, as on Android;
 - the transport reports each PUBLISH once, so the client matches the topic against the open filters (`+`, `#`) and
   decodes the payload as UTF-8;
-- cancelling a collector sends one UNSUBSCRIBE for its filter (none while another open flow uses the same filter).
+- cancelling a collector sends one UNSUBSCRIBE for its filter (none while another open flow uses the same filter);
+- `publishString` returns on the broker's PUBACK, as HiveMQ's QoS 1 publish does on Android, and throws when not
+  connected, when the transport refuses the message, when the connection drops first or after 10 s without a PUBACK
+  (details in `watering.md`).
 
 `NetworkConnectivity` on iOS is `IosNetworkConnectivity` over `NWPathMonitor`; `initShared` logs each change
 ("Pliuskis network: online" / "offline") to the unified log.

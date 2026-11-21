@@ -8,7 +8,7 @@ enum class WateringState {
     /** The command is on its way to the device; another tap is ignored. */
     SENDING,
 
-    /** The broker took the command. Turns back to [IDLE] after a short confirmation. */
+    /** The broker took the command (its PUBACK arrived). Turns back to [IDLE] after a short confirmation. */
     STARTED,
 
     /** The command could not be sent. The user can try again. */
