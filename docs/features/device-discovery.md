@@ -1,5 +1,5 @@
 # Device discovery
-**Last verified**: 2026-11-21
+**Last verified**: 2026-11-21 (kmp_ci_cd_release STORY-4 / PLIUS-32)
 **Scope**: how the app finds IoT devices and tracks whether they are online (device list screen and the device firmware's MQTT birth/Last Will).
 
 ## Summary
@@ -129,7 +129,8 @@ values to the stateless `DeviceListScreen(state:isOffline:selection:onRetry:)`:
 ### iOS control screen
 `LiveControlScreen` (`iosApp`) owns the shared `ControlViewModel` through `IosViewModelStoreOwner`
 (`createControlViewModel(deviceId)`), collects `controlUiState` and `wateringState` while it is shown and passes them
-to the stateless `ControlScreen(deviceName:state:wateringState:onWater:onRetry:)`. Opening it connects if needed, publishes one status request and subscribes
+to the stateless `ControlScreen(deviceName:state:wateringState:onWater:onRetry:)` (the status and water flows on both
+apps: `device-status.md`, `watering.md`). Opening it connects if needed, publishes one status request and subscribes
 to `application/{clientId}/{deviceId}/status`, all in Kotlin, as on Android. Back pops the screen; SwiftUI releases the
 owner, which clears the ViewModel once, and the status subscription sends its UNSUBSCRIBE.
 - `Loading`: a progress indicator. `Success`: the health card ("Feeling great" or "Thirsty", with "Updated …"),
@@ -174,13 +175,14 @@ owner, which clears the ViewModel once, and the status subscription sends its UN
   `shared/src/iosMain/.../SharedEntryPoint.kt` (`createControlViewModel`)
 - iOS broker settings: `iosApp/iosApp/BrokerConfiguration.swift`, `PliuskisApp.swift`; `iosApp/project.yml` (Info.plist
   keys); `iosApp/Configuration/Secrets.template.xcconfig` (`BROKER_HOST`)
-- Firmware: `picow-pliuskis/main.py` (`mqtt_connect`, `connect_with_backoff`, ping in the main loop)
+- Firmware (`rsetkus/pico-pliuskis`): `main.py` (`mqtt_connect`, `connect_with_backoff`, ping in the main loop) and
+  its `docs/features/discovery.md`
 
 ## Gotchas & decisions
 - **`IotManager` is the contract for every platform client.** Its KDoc states it: `connect()` and `publishString()`
   suspend and never block the caller; `connect()` is safe when already connected or connecting; subscriptions survive
-  a reconnect; `reconnects()` emits once per CONNACK after a lost connection. Status requests and the water command
-  publish through the HiveMQ async API.
+  a reconnect; `reconnects()` emits once per CONNACK after a lost connection. On Android, status requests and the water
+  command publish through the HiveMQ async API.
 - **Each screen that uses MQTT connects for itself.** Nothing connects at app launch, and the splash screen doesn't wait
   for MQTT. `DevicesViewModel` connects before discovery, and `ControlViewModel` connects before it requests or
   subscribes to status. The control screen can't rely on the device list: after process death the Android pane
@@ -189,7 +191,7 @@ owner, which clears the ViewModel once, and the status subscription sends its UN
   `MqttClientStateException`. `HiveMqttClientManager.connect` checks the client state first: connected returns at once,
   and connecting or reconnecting waits for that attempt. A concurrent connect that wins the race (the exception) is
   waited on the same way. So re-collecting the device list (back from background after the 5 s stop timeout) doesn't
-  error, and a slow reconnect shows `Loading` and then the result instead of an early "No devices found".
+  error, and a slow reconnect shows `Loading` and then the result instead of an early "No devices yet".
 - **The Last Will only fires on an ungraceful loss** (power cut, WiFi drop, missed keepalive). A clean `DISCONNECT`
   suppresses it, so the firmware publishes `offline` itself before disconnecting.
 - **Keepalive needs pings.** `umqtt.simple` never sends PINGREQ on its own, so the firmware pings every

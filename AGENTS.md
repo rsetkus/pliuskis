@@ -69,8 +69,9 @@ bump `XCODE_APP` and `IOS_DESTINATION` in the workflow together with `kotlin`. I
 `core:domain`, `core:data`, `core:presentation` and `shared`, then `:shared:assembleSharedDebugXCFramework` and
 `xcodebuild test -scheme SharedSwiftTest`, then starts Mosquitto on `localhost:1883` (Homebrew) for the broker contract
 tests and runs `xcodebuild test` of scheme `iosApp` (unit and UI tests) on an iPhone 17 Simulator. It caches Gradle
-(`gradle/actions/setup-gradle`) and `~/.konan`. Every job uploads its test reports when it fails (`android-test-reports`,
-`android-ui-test-reports`, `ios-test-reports` with the `.xcresult` bundles).
+(`gradle/actions/setup-gradle`) and `~/.konan`. Every test job uploads its test reports when it fails
+(`android-test-reports`, `android-ui-test-reports`, `ios-test-reports` with the `.xcresult` bundles), and the Linux job
+also uploads `paparazzi-failures` when the screenshot check fails.
 
 The TestFlight release runs in `.github/workflows/release-ios.yml`, started by hand (workflow_dispatch) or by pushing a
 version tag `v*`, never by a pull request. A Linux `guard` job fails for any ref other than `master` or a `v*` tag, so
@@ -83,12 +84,18 @@ template plus `DEVELOPMENT_TEAM` and `BROKER_HOST[config=Release]`, runs `xcodeb
 `xcodebuild -exportArchive` with `iosApp/ExportOptions.plist`, which uploads the build to TestFlight for internal
 testing only. The repository is public, so the job pins its actions to commit SHAs, prints no secret (xcodebuild
 echoes the API key ID and issuer ID from its command line, masked as `***`), uploads no artifact and deletes the key
-file and `Secrets.xcconfig` at the end. External TestFlight testing stays off until the login work (PLIUS-6) is done;
-`Info.plist` answers export compliance with `ITSAppUsesNonExemptEncryption = NO`.
+file and `Secrets.xcconfig` at the end. External TestFlight testing is off: the app has no user login (decided in
+PLIUS-6). `Info.plist` answers export compliance with `ITSAppUsesNonExemptEncryption = NO`.
 
 ## Setup Requirements
 
 - **JDK 17** required: the minimum for AGP 9.3 and Gradle 9.7, and the target of the build-logic convention plugins
+  (on macOS: `export JAVA_HOME=$(/usr/libexec/java_home -v 17)`)
+- **Android SDK** — Gradle finds it through `ANDROID_HOME` (e.g. `export ANDROID_HOME=$HOME/Library/Android/sdk` on
+  macOS) or `sdk.dir` in the gitignored `local.properties`, which Android Studio writes when it opens the project.
+  Without either, every Gradle build fails with "SDK location not found"
+- **Xcode** (macOS only), for the iOS framework and `iosApp`: CI uses Xcode 26.4.1 (see § CI). XcodeGen is needed
+  only to regenerate `iosApp.xcodeproj` after a change to `iosApp/project.yml`
 - **AWS IoT credentials** — copy `default.secrets.properties` to `secrets.properties` and fill in:
   - `AMAZON_IOT_ENDPOINT`, `KEYSTORE_NAME`, `KEYSTORE_PASSWORD`, `CERT_ID`
   - The release build also needs the client keystore at `app/src/main/assets/legacy-keystore.p12` (gitignored)
@@ -126,7 +133,11 @@ Big cross-cutting flows live in `docs/features/`. Before you explore a flow, rea
 
 ## Architecture
 
-This is a Clean Architecture + MVVM Android app with Jetpack Compose UI, organized in a Gradle multi-module setup.
+Pliuškis has two apps, Android and iOS, built from one Kotlin Multiplatform codebase with Clean Architecture + MVVM,
+organized in a Gradle multi-module setup. The shared modules (`core/domain`, `core/data`, `core/presentation`) hold
+the use cases, the MQTT integration and the ViewModels for both apps. The Android app draws them with Jetpack Compose
+(`app`, `feature/*`, `core/designsystem`); the iOS app draws them with SwiftUI (`iosApp`, through the `shared`
+framework).
 
 ### Module Structure
 
@@ -141,8 +152,8 @@ core/
   designsystem/        — Flora theme and shared Compose components (see docs/design-system.md)
 feature/               — Android only: Compose UI, navigation, Koin wiring of the ViewModels, Android mapping
                          (display text, date format, icons); no ViewModel classes
-  devices/             — Device list screen
-  control/             — Device control screen
+  devices/             — Device list screen and the list-detail layout (`DevicesListDetail`)
+  control/             — Device control screen (`ControlPane`, the detail pane)
 shared/                — iOS umbrella KMP module: builds the static framework `Shared` (iosArm64, iosSimulatorArm64)
                          with SKIE; Swift API `initShared(settings, transport)`, the ViewModel factories and `ScreenViewModels`
                          (iosMain)
@@ -164,7 +175,7 @@ build-logic/           — Gradle convention plugins (application, library, feat
 
 **Dependency Injection** — Koin; each module declares its own Koin module (e.g., `dataModule`, `devicesModule`), all loaded in `MyApplication`. A shared module splits its bindings into a common module and a platform module: `core/data` has `dataModule` (commonMain), `androidDataModule` (androidMain) and `iosDataModule` (iosMain); the app loads the first two, `initShared` the first and the last.
 
-**State management** — ViewModels live in `core/presentation` (commonMain, the multiplatform `androidx.lifecycle.ViewModel`) and expose `StateFlow`; UI state sealed classes follow the `Loading / Success / Error` pattern (e.g., `DevicesListScreenState`). A ViewModel gets its arguments through its constructor (e.g. `ControlViewModel(deviceId, ...)`); the Android navigation layer reads the route argument and passes it with Koin `parametersOf`. UI state holds meanings, not display text (e.g. `HumidityStatus.THIRSTY`); each platform maps them to its own text.
+**State management** — ViewModels live in `core/presentation` (commonMain, the multiplatform `androidx.lifecycle.ViewModel`) and expose `StateFlow`; UI state sealed classes follow the `Loading / Success / Error` pattern (e.g., `DevicesListScreenState`). A ViewModel gets its arguments through its constructor (e.g. `ControlViewModel(deviceId, ...)`); on Android the list-detail layout passes the selected device's id to `ControlPane`, which passes it with Koin `parametersOf`. UI state holds meanings, not display text (e.g. `HumidityStatus.THIRSTY`); each platform maps them to its own text.
 
 **Swift API (`shared`)** — Swift calls `initShared(settings, transport)` once (it starts Koin; a second call does nothing),
 with `MqttSettings` from `BrokerConfiguration` (host from `BROKER_HOST` of the xcconfig, via Info.plist) and the
@@ -182,13 +193,15 @@ Kotlin.
 
 ### Testing Stack
 
-- **Kotest** (FunSpec style) — primary unit test framework
-- **Mockk** — mocking
+- **Kotest** (FunSpec style) — primary unit test framework, also on iOS (shared modules' `commonTest`)
+- **Mockk** — mocking, JVM only (Android modules and `androidHostTest`)
 - **Turbine** — Flow testing
-- **Paparazzi** — Compose screenshot tests, on the JVM
-- **Compose UI test** (`AndroidComposeTestRule`) — Compose behaviour tests, instrumented
+- **Paparazzi** — Compose screenshot tests, on the JVM (Android only)
+- **Compose UI test** (`AndroidComposeTestRule`) — Compose behaviour tests, instrumented (Android only)
+- **XCTest / XCUITest** — Swift tests: `SharedSwiftTest` (the `Shared` framework), `iosAppTests` (unit) and
+  `iosAppUITests` (UI)
 - Unit tests live in `src/test/kotlin` (shared KMP modules: `src/commonTest/kotlin`), instrumented tests in
-  `src/androidTest/kotlin`
+  `src/androidTest/kotlin`, Swift tests in `shared/swift-test` and `iosApp/iosAppTests`, `iosApp/iosAppUITests`
 - Details and commands: `docs/testing.md`
 
 ### Code Quality

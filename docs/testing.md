@@ -2,10 +2,13 @@
 
 ## Framework
 
-- Kotest, MockK and Junit5 for unit tests.
-- Compose UI is the exception, see [Compose UI tests](#compose-ui-tests):
+- Kotest, MockK and Junit5 for unit tests. In the shared (KMP) modules Kotest runs on Android and iOS, and MockK only
+  on the JVM, see [Shared (KMP) module tests](#shared-kmp-module-tests).
+- Compose UI (Android) is the exception, see [Compose UI tests](#compose-ui-tests):
   - **Paparazzi** for rendering (screenshot tests on the JVM).
   - **Compose UI test** (`AndroidComposeTestRule`) for UI behaviour (instrumented).
+- Swift code (iOS) uses **XCTest**, and **XCUITest** for the iOS app's UI, see
+  [The `shared` module and Swift tests](#the-shared-module-and-swift-tests) and [iOS app tests](#ios-app-tests-iosapp).
 - No other test framework.
 
 ## Story-scoped test naming (Sage convention)
@@ -27,7 +30,9 @@ If a test legitimately covers behavior owned by multiple stories (rare; almost o
 
 ## Test commands
 
-- **Story-scoped (Tester worker default):** `./gradlew <module>:testDebugUnitTest --tests "Story<N>*"`
+- **Story-scoped (Tester worker default):** `./gradlew <module>:testDebugUnitTest --tests "Story<N>*"` in an Android
+  module (e.g. `./gradlew feature:devices:testDebugUnitTest --tests "Story2*"`); a shared (KMP) module has no `testDebugUnitTest` and needs a fully qualified class name on
+  `testAndroidHostTest` (see [Shared (KMP) module tests](#shared-kmp-module-tests))
 - **Full regression (EpicVerifier):** `./gradlew check`
 - **Compose screenshots, story-scoped:** `./gradlew <module>:verifyPaparazziDebug --tests "*Story<N>*"`
 - **Compose behaviour, story-scoped:** `./gradlew <module>:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.tests_regex=".*testStory<N>_.*"`
@@ -67,7 +72,7 @@ that start with a lowercase letter.
   - Wrap content in `PliuskisTheme` and a `Surface`. Without a `Surface`, the snapshot has the default dark window and no
     themed background.
   - Pass `darkTheme` explicitly, so the snapshot doesn't depend on the machine.
-  - Avoid running animations. At frame 0 they can render nothing; `LoadingWheel` does this.
+  - Avoid running animations. At frame 0 they can render nothing.
   - For font scale or another device, pass `deviceConfig = DeviceConfig.PIXEL_5.copy(fontScale = 1.5f)` to
     `Paparazzi(...)`, one rule per configuration.
 - **Commands:**
@@ -143,7 +148,8 @@ that start with a lowercase letter.
     `META-INF/io.netty.versions.properties`, as in `feature/devices/build.gradle.kts`. HiveMQ's Netty jars each ship
     them, and the androidTest APK fails to package with duplicates.
 - **CI:** `build-ui.yml` runs `./gradlew connectedCheck` on an API 29 emulator for every pull request. It covers the
-  behaviour tests of every module. Run the same command locally, with an emulator or a connected device.
+  behaviour tests of every module. On failure it uploads the `android-ui-test-reports` artifact. Run the same command
+  locally, with an emulator or a connected device (`adb devices` lists it).
 
 
 ## Shared (KMP) module tests
@@ -221,8 +227,8 @@ below, and ktlint and detekt over `src/commonMain`, `src/androidMain`, `src/iosM
 
 The SwiftUI app in `iosApp/` has two XCTest targets, both on macOS with Xcode only. In CI the macOS job
 (`build-ios.yml`, on every push to `master` and on pull requests that change `core/**`, `shared/**`, `iosApp/**`,
-`build-logic/**` or `gradle/**`) runs both through `xcodebuild test -scheme iosApp` on an iPhone 17 Simulator, after it
-copies the Secrets template and starts Mosquitto on `localhost:1883` for the broker contract tests. On failure it
+`build-logic/**` or `gradle/**`) starts Mosquitto on `localhost:1883` for the broker contract tests, copies the Secrets
+template and runs both through `xcodebuild test -scheme iosApp` on an iPhone 17 Simulator (iOS 26.4.1). On failure it
 uploads the `.xcresult` bundles in the `ios-test-reports` artifact. The TestFlight release workflow (`release-ios.yml`,
 AGENTS.md § CI) runs no tests.
 
@@ -232,8 +238,16 @@ AGENTS.md § CI) runs no tests.
   runtime. A test can subclass a Kotlin class such as `Lifecycle_viewmodelViewModel` in Swift. `CocoaMQTT` is
   importable in the bundle the same way (a package dependency with `link: false` in `project.yml`).
 - **Broker contract (`iosAppTests`):** tests that drive `CocoaMqttTransport` against a real broker (e.g.
-  `Story2MqttBrokerContractTests`) need the staging Mosquitto on `localhost:1883` (`docker compose up -d --build` in the
-  staging project). Without it they fail with the start command; they don't skip.
+  `Story2MqttBrokerContractTests`) need a plaintext, anonymous Mosquitto on `localhost:1883`. Without it they fail
+  with the start command; they don't skip. Either run the staging broker (`staging/README.md`, Docker), or start
+  Mosquitto the way CI does (Homebrew, no Docker):
+  ```bash
+  brew install mosquitto
+  printf 'listener 1883\nallow_anonymous true\n' > /tmp/pliuskis-mosquitto.conf
+  "$(brew --prefix mosquitto)/sbin/mosquitto" -c /tmp/pliuskis-mosquitto.conf -d
+  nc -z localhost 1883 && echo "broker up"
+  # afterwards: pkill -f pliuskis-mosquitto.conf
+  ```
 - **UI (`iosAppUITests`):** XCUITest against the launched app. Find elements by accessibility identifier
   (`.accessibilityIdentifier(...)` in the app).
 - **UI test scenarios:** a screen test that needs a fixed state launches the app with `-uiTestScenario <name>`
@@ -265,6 +279,24 @@ AGENTS.md § CI) runs no tests.
   ```
 - **Simulator architecture:** Gradle builds `Shared` for `iosSimulatorArm64` only, so `project.yml` excludes x86_64
   from Simulator builds.
+
+## CI
+
+Each workflow in `.github/workflows` and the tests it runs (AGENTS.md § CI has the toolchain and release details).
+Every job that runs Gradle uses JDK 17 (Temurin) and `gradle/actions/setup-gradle`; a job's steps stop at the first
+failure, except the report uploads (`if: failure()`) and the release's cleanup step (`if: always()`).
+
+| Workflow (name) | Trigger | Job (runner) | Steps | On failure, uploads |
+|---|---|---|---|---|
+| `build.yml` (Android Build) | every push | `build` (`ubuntu-latest`) | `./gradlew assemble`, `./gradlew test`, `./gradlew verifyPaparazziDebug`, `./gradlew detekt ktlintCheck lint` | `paparazzi-failures`, `android-test-reports` |
+| `build-ui.yml` (Android UI Tests) | every pull request | `android-test` (`ubuntu-latest`) | enable KVM, `./gradlew connectedCheck` on an API 29 `x86_64` emulator | `android-ui-test-reports` |
+| `build-ios.yml` (iOS Build) | every push to `master`; every pull request, filtered by `changes` | `changes` (`ubuntu-latest`, pull requests only), then `ios` "macOS (iOS tests)" (`macos-26`) | Xcode 26.4.1, cache `~/.konan`, `iosSimulatorArm64Test` of `core:domain`, `core:data`, `core:presentation` and `shared`, `:shared:assembleSharedDebugXCFramework`, `xcodebuild test -scheme SharedSwiftTest`, Mosquitto on `localhost:1883`, `xcodebuild test -scheme iosApp`, both on `iPhone 17,OS=26.4.1` | `ios-test-reports` |
+| `release-ios.yml` (iOS Release) | `workflow_dispatch`, push of a `v*` tag | `guard` (`ubuntu-latest`), then `testflight` (`macos-26`, environment `release`) | no tests: archive, upload to TestFlight | nothing |
+
+The `changes` job lists the pull request's files (with the old path of a renamed file) and lets `ios` run only when
+one of them starts with `core/`, `shared/`, `iosApp/`, `build-logic/` or `gradle/`. Otherwise `ios` shows as skipped:
+a pull request that changes only `feature/**`, `app/**`, `.github/**` or the root build files is first checked on
+`master`.
 
 ## What kinds of tests to write
 
