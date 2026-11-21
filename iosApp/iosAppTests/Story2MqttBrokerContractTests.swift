@@ -58,7 +58,7 @@ final class Story2MqttBrokerContractTests: XCTestCase {
         try observer.subscribeAndWait(topicFilter: topic, qos: .qos2, timeout: Self.timeout)
         let (transport, _) = try connectedTransport(clientId: "\(prefix)-ios")
 
-        transport.publish(topic: topic, payload: Data(payload.utf8))
+        _ = transport.publish(topic: topic, payload: Data(payload.utf8))
 
         let message = try XCTUnwrap(
             observer.waitForMessage(timeout: Self.timeout) { $0.topic == topic },
@@ -66,6 +66,32 @@ final class Story2MqttBrokerContractTests: XCTestCase {
         )
         XCTAssertEqual(Data(message.payload), Data(payload.utf8))
         XCTAssertEqual(message.qos, .qos1)
+    }
+
+    // GIVEN the transport connected to the staging broker
+    // WHEN it publishes a QoS 1 message
+    // THEN publish returns a packet identifier, and the broker's PUBACK for exactly that identifier reaches Kotlin
+    //      (the iOS client waits for it before the water button shows "Watering started")
+    func testPublishReportsThePubackOfItsMessage() throws {
+        let topic = "\(prefix)/t/ack"
+        let (transport, listener) = try connectedTransport(clientId: "\(prefix)-ack")
+
+        let messageId = transport.publish(topic: topic, payload: Data("{}".utf8))
+
+        XCTAssertGreaterThan(messageId, 0)
+        XCTAssertTrue(
+            waitUntil(timeout: Self.timeout) { listener.publishAcks.contains(messageId) },
+            "No PUBACK reported for message \(messageId); reported: \(listener.publishAcks)"
+        )
+    }
+
+    // GIVEN a transport that never connected
+    // WHEN it publishes
+    // THEN publish returns -1, so Kotlin fails the command at once
+    func testPublishBeforeAnyConnectIsRefused() {
+        let transport = CocoaMqttTransport()
+
+        XCTAssertEqual(transport.publish(topic: "\(prefix)/t/x", payload: Data("{}".utf8)), -1)
     }
 
     // AC10
@@ -210,10 +236,12 @@ final class RecordingTransportListener: NSObject, MqttTransportListener {
     private var _connected = 0
     private var _disconnected = 0
     private var _messages: [Message] = []
+    private var _publishAcks: [Int32] = []
 
     var connectedCount: Int { lock.withLock { _connected } }
     var disconnectedCount: Int { lock.withLock { _disconnected } }
     var messages: [Message] { lock.withLock { _messages } }
+    var publishAcks: [Int32] { lock.withLock { _publishAcks } }
 
     func onConnecting() { lock.withLock { _connecting += 1 } }
     func onConnected() { lock.withLock { _connected += 1 } }
@@ -221,6 +249,7 @@ final class RecordingTransportListener: NSObject, MqttTransportListener {
     func onMessage(topic: String, payload: Data) {
         lock.withLock { _messages.append(Message(topic: topic, payload: payload)) }
     }
+    func onPublishAcknowledged(messageId: Int32) { lock.withLock { _publishAcks.append(messageId) } }
 }
 
 /// An independent MQTT 3.1.1 client that plays the other side of the broker: observer, publisher or intruder.

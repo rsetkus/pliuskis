@@ -30,5 +30,5 @@ private final class RefusingMqttTransport: NSObject, MqttTransport {
 
     func unsubscribe(topicFilter: String) {}
 
-    func publish(topic: String, payload: Data) {}
+    func publish(topic: String, payload: Data) -> Int32 { -1 }
 }

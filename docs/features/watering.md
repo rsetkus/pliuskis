@@ -1,5 +1,5 @@
 # Watering
-**Last verified**: 2026-11-21 (kmp_ci_cd_release STORY-4 / PLIUS-32)
+**Last verified**: 2026-11-21 (iOS water result follows the PUBACK)
 **Scope**: the "Water now" button of the control screen (Android and iOS), its watering feedback, and the `water` command it sends to the device.
 
 ## Summary
@@ -29,8 +29,9 @@ below); each platform only draws the state.
 3. `ExecuteWaterCommandUseCase` calls the port `CommandExecutable<String>`, which `dataModule` binds to
    `MqttExecuteWaterCommand`. It encodes `CommandMessage(Command.WATER_COMMAND)` as `{"command":"water"}` and
    publishes it to `devices/{deviceId}/command` through `IotManager.publishString` (QoS 1, not retained). On Android
-   `HiveMqttClientManager` waits for HiveMQ's async publish to complete; on iOS `IosMqttClientManager` hands it to
-   `CocoaMqttTransport.publish`.
+   `HiveMqttClientManager` waits for HiveMQ's async QoS 1 publish to complete; on iOS `IosMqttClientManager` refuses
+   it when not connected, hands it to `CocoaMqttTransport.publish` and waits up to 10 s for the broker's PUBACK of
+   that packet identifier, failing if the transport refuses it, the connection drops or no PUBACK comes.
 4. The publish returns `Either.Right`: `wateringState` becomes `STARTED` ("Watering started" with a check icon; on iOS
    also a success haptic), and after 3 s (`WATERING_CONFIRMATION_MILLIS`) goes back to `IDLE` ("Water now") unless
    another tap changed it. It returns `Either.Left`: `FAILED`, the button reads "Try again" and the line "Couldn't
@@ -55,7 +56,9 @@ isn't a known command.
   (`Command`, `CommandMessage`: the payload); `core/data/.../di/KoinModules.kt` (`dataModule`)
 - Tests: `core/presentation/src/commonTest/.../control/ControlViewModelWateringTest.kt` (the states, the ignored tap
   while sending); `shared/src/iosTest/.../Story6WaterNotRepeatedTest.kt` (a reconnect or a refresh never sends a water
-  command); `feature/control/src/test/.../ControlScreenSnapshotTest.kt` (watering started, failed, sending);
+  command); `shared/src/iosTest/.../WaterResultOnIosTest.kt` (iOS: `STARTED` when the broker acknowledges, `FAILED`
+  after the connection dropped); `core/data/src/iosTest/.../IosMqttClientManagerPublishAckTest.kt` (the PUBACK wait
+  and its failures); `feature/control/src/test/.../ControlScreenSnapshotTest.kt` (watering started, failed, sending);
   `iosApp/iosAppUITests/Story5ControlScreenUITests.swift` with the UI test scenarios `controlWatering` and
   `controlWateringFailed` and the tap counter `uiTestScenario.waterCount` (`docs/testing.md`)
 - Firmware (`rsetkus/pico-pliuskis`): `lib/plant.py` (`Plant.on_message`, `take_water_request`, `Relay.pulse`),
@@ -65,10 +68,10 @@ isn't a known command.
 - **Only a tap waters.** Opening the screen, a reconnect, Retry and a foreground refresh publish status requests,
   never a water command; `Story6WaterNotRepeatedTest` guards it. The command is not retained, so the broker never
   replays it to a device that reconnects later.
-- **"Watering started" means the publish call returned, not that the device watered.** On Android the call completes
-  when HiveMQ's QoS 1 publish completes. On iOS `CocoaMqttTransport.publish` queues the message in CocoaMQTT and
-  returns without reporting an error (the Kotlin `MqttTransport.publish` has no result), so the live iOS app shows
-  `STARTED` even when the message never leaves the phone, and reaches `FAILED` only if the Kotlin call throws.
+- **"Watering started" means the broker took the command (PUBACK), not that the device watered.** On Android
+  HiveMQ's QoS 1 publish completes on the PUBACK. On iOS the PUBACK wait is in `IosMqttClientManager`, because
+  CocoaMQTT queues a QoS 1 message even while disconnected and returns a packet identifier for it (and drops the queue
+  on a clean-session reconnect), so its return value alone proves nothing.
 - **A tap while sending is dropped; a tap after it is not.** Taps in `STARTED` or `FAILED` send again, and the firmware
   waters once for each `water` command it takes (one message per pass of its main loop), so repeated taps water
   repeatedly.

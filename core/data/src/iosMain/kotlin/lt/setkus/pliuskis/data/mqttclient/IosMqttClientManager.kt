@@ -19,6 +19,12 @@ import platform.Foundation.NSRecursiveLock
 /** How long [IosMqttClientManager.connect] waits for a running connect attempt. */
 internal const val PENDING_CONNECTION_TIMEOUT_MILLIS = 10_000L
 
+/** How long [IosMqttClientManager.publishString] waits for the broker's PUBACK. */
+internal const val PUBLISH_ACK_TIMEOUT_MILLIS = 10_000L
+
+/** The broker did not take a message: not connected, refused by the transport, connection lost, or no PUBACK. */
+internal class MqttPublishException(message: String) : Exception(message)
+
 private const val RECONNECT_BUFFER = 8
 
 /**
@@ -35,6 +41,9 @@ private const val RECONNECT_BUFFER = 8
  *   after the subscriptions are sent again. Nothing is replayed.
  * - **Messages.** The transport reports each PUBLISH once; this client matches its topic against the open filters
  *   (`+`, `#`) and decodes the payload as UTF-8.
+ * - **Publish waits for PUBACK.** [publishString] returns when the broker acknowledges the message, as HiveMQ's
+ *   QoS 1 publish does on Android. It throws [MqttPublishException] at once when not connected or when the transport
+ *   refuses the message, and later when the connection drops or no PUBACK comes within [publishAckTimeoutMillis].
  *
  * The broker settings come from [settings]; iOS connects in plaintext (`TlsMode.NONE`), so the TLS mode is not used.
  * The transport calls back on the main queue and the callers may be on any thread, so the state is guarded by a lock.
@@ -43,6 +52,7 @@ internal class IosMqttClientManager(
     private val transport: MqttTransport,
     private val settings: MqttSettings,
     private val pendingConnectionTimeoutMillis: Long = PENDING_CONNECTION_TIMEOUT_MILLIS,
+    private val publishAckTimeoutMillis: Long = PUBLISH_ACK_TIMEOUT_MILLIS,
 ) : IotManager {
 
     private enum class Link { DISCONNECTED, CONNECTING, CONNECTED }
@@ -53,6 +63,7 @@ internal class IosMqttClientManager(
     private var link = Link.DISCONNECTED
     private var runningAttempt: CompletableDeferred<MqttConnectionState>? = null
     private val subscriptions = mutableListOf<Subscription>()
+    private val pendingAcks = mutableMapOf<Int, CompletableDeferred<Unit>>()
     private var connectedBefore = false
     private val reconnectEvents = MutableSharedFlow<Unit>(
         extraBufferCapacity = RECONNECT_BUFFER,
@@ -75,7 +86,12 @@ internal class IosMqttClientManager(
     override fun getClientId(): String = settings.clientId
 
     override suspend fun publishString(message: String, topic: String) {
-        transport.publish(topic, message.toUtf8NSData())
+        val ack = lock.locked { queuePublish(topic, message) }
+        val acknowledged = withTimeoutOrNull(publishAckTimeoutMillis) { ack.await() } != null
+        if (!acknowledged) {
+            lock.locked { pendingAcks.values.remove(ack) }
+            throw MqttPublishException("No PUBACK for $topic within $publishAckTimeoutMillis ms")
+        }
     }
 
     override fun subscribe(topic: String): Flow<IotMessage> = callbackFlow {
@@ -88,6 +104,16 @@ internal class IosMqttClientManager(
     }.buffer(Channel.UNLIMITED)
 
     override fun reconnects(): Flow<Unit> = reconnectEvents.asSharedFlow()
+
+    /** Must hold [lock]. Hands the message to the transport and returns what completes on its PUBACK. */
+    private fun queuePublish(topic: String, message: String): CompletableDeferred<Unit> {
+        if (link != Link.CONNECTED) throw MqttPublishException("Not connected, so $topic was not sent")
+        val messageId = transport.publish(topic, message.toUtf8NSData())
+        if (messageId < 0) throw MqttPublishException("The transport refused the message on $topic")
+        val ack = CompletableDeferred<Unit>()
+        pendingAcks[messageId] = ack
+        return ack
+    }
 
     /** Must hold [lock]. The listener may answer synchronously, so the attempt exists before the transport call. */
     private fun startAttempt(): CompletableDeferred<MqttConnectionState> {
@@ -131,6 +157,12 @@ internal class IosMqttClientManager(
 
         override fun onDisconnected() = lock.locked {
             finishAttempt(Link.DISCONNECTED, MqttConnectionState.FAILED)
+            pendingAcks.values.forEach { it.completeExceptionally(MqttPublishException("The connection was lost")) }
+            pendingAcks.clear()
+        }
+
+        override fun onPublishAcknowledged(messageId: Int) {
+            lock.locked { pendingAcks.remove(messageId) }?.complete(Unit)
         }
 
         override fun onMessage(topic: String, payload: NSData) {

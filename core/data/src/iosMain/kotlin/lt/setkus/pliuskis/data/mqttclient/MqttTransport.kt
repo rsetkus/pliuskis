@@ -26,8 +26,14 @@ interface MqttTransport {
     /** Sends UNSUBSCRIBE for [topicFilter]. */
     fun unsubscribe(topicFilter: String)
 
-    /** Sends PUBLISH of [payload] on [topic] with QoS 1, not retained. */
-    fun publish(topic: String, payload: NSData)
+    /**
+     * Queues PUBLISH of [payload] on [topic] with QoS 1, not retained. Returns the packet identifier, which
+     * [MqttTransportListener.onPublishAcknowledged] reports when the broker answers with PUBACK, or -1 when the
+     * transport refused the message (no connection object, invalid topic, no free packet identifier). A queued message
+     * may still never reach the broker: CocoaMQTT also queues while disconnected and drops the queue on a clean-session
+     * reconnect, so only the PUBACK says the broker took it.
+     */
+    fun publish(topic: String, payload: NSData): Int
 }
 
 /** What the [MqttTransport] reports to Kotlin. CocoaMQTT calls it on the main queue. */
@@ -45,4 +51,7 @@ interface MqttTransportListener {
 
     /** A PUBLISH arrived on [topic]; [payload] holds its raw bytes. */
     fun onMessage(topic: String, payload: NSData)
+
+    /** The broker answered PUBACK for the message that [MqttTransport.publish] returned [messageId] for. */
+    fun onPublishAcknowledged(messageId: Int)
 }
