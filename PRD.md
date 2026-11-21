@@ -1,6 +1,8 @@
 # PRD: Pliuskis - Smart plant control system (`pliuskis`)
 ## Background
-I am developing Android application that controls IoT gardening device.
+I am developing a mobile application that controls an IoT gardening device. It has two targets, **Android** and
+**iOS**, built from one Kotlin Multiplatform codebase: the business logic, the MQTT client and the ViewModels are
+shared, and each platform has its own native UI (Jetpack Compose on Android, SwiftUI on iOS).
 
 This is v0.1 MVP application. It covers small separable features, device discovery and device control actions
 
@@ -25,7 +27,10 @@ This is v0.1 MVP application. It covers small separable features, device discove
 We will revisit any of these in v0.2 if v0.1 ships cleanly.
 
 ### Output
-Executable archive to install on Android device/emulator, release build non-crashing on launch.
+- Android: an executable archive (APK) to install on an Android device or emulator.
+- iOS: an app for the iOS Simulator and, through TestFlight, for internal testers' iPhones (and Apple Silicon Macs,
+  which run it as "Designed for iPhone").
+- On both, the release build doesn't crash on launch.
 
 ---
 
@@ -39,7 +44,8 @@ Executable archive to install on Android device/emulator, release build non-cras
 The feature is done when:
 
 **Building:**
-- release builds installs and launches on emulator or device without errors.
+- The release builds of both apps install and launch without errors (Android emulator or device; iOS Simulator or
+  TestFlight).
 - New build user-facing behaviors above work for their happy paths.
 - New build edge case has either a passing test demonstrating the documented behavior, or a documented decision to defer (with reason).
 
