@@ -3,6 +3,7 @@ package lt.setkus.pliuskis.core.designsystem.icon
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -22,4 +23,5 @@ object PliuskisIcons {
     val Done: ImageVector = Icons.Rounded.CheckCircle
     val Warning: ImageVector = Icons.Rounded.Warning
     val Offline: ImageVector = RoundedWifiOff
+    val Account: ImageVector = Icons.Rounded.AccountCircle
 }

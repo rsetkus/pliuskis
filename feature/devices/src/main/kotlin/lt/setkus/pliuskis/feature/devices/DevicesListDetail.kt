@@ -1,5 +1,6 @@
 package lt.setkus.pliuskis.feature.devices
 
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.adaptive.layout.AnimatedPane
@@ -43,6 +44,7 @@ typealias DeviceDetailPane = @Composable (
 internal fun DevicesListDetailRoute(
     detailPane: DeviceDetailPane,
     modifier: Modifier = Modifier,
+    topBarActions: @Composable RowScope.() -> Unit = {},
     viewModel: DevicesViewModel = koinViewModel(),
 ) {
     val devices by viewModel.devices.collectAsStateWithLifecycle()
@@ -50,13 +52,14 @@ internal fun DevicesListDetailRoute(
         devices = devices,
         onRetry = viewModel::retry,
         detailPane = detailPane,
-        modifier = modifier
+        modifier = modifier,
+        topBarActions = topBarActions
     )
 }
 
 /**
  * Stateless list-detail. [scaffoldDirective] (how many panes fit) comes from the window size; tests pass their own.
- * [initialSelectedId] opens a device's detail from the start (for tests).
+ * [initialSelectedId] opens a device's detail from the start (for tests). [topBarActions] go to the list's top bar.
  */
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
@@ -68,6 +71,7 @@ internal fun DevicesListDetail(
     modifier: Modifier = Modifier,
     scaffoldDirective: PaneScaffoldDirective = calculatePaneScaffoldDirective(currentWindowAdaptiveInfo()),
     initialSelectedId: String? = null,
+    topBarActions: @Composable RowScope.() -> Unit = {},
 ) {
     val navigator = rememberListDetailPaneScaffoldNavigator(
         scaffoldDirective = scaffoldDirective,
@@ -94,7 +98,8 @@ internal fun DevicesListDetail(
                     devices = devices,
                     onRetry = onRetry,
                     selectedDeviceId = selectedId,
-                    twoPane = twoPane
+                    twoPane = twoPane,
+                    topBarActions = topBarActions
                 )
             }
         },

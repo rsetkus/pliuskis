@@ -22,6 +22,29 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Sign-in (core:data): opens Cognito's managed login in a Custom Tab and learns how it ended. -->
+        <activity
+            android:name="lt.setkus.pliuskis.data.auth.SignInBrowserActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
+        <!-- Receives the managed login's redirect; the scheme is the build type's COGNITO_REDIRECT_URI scheme. -->
+        <activity
+            android:name="lt.setkus.pliuskis.data.auth.SignInRedirectActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="${signInRedirectScheme}" />
+            </intent-filter>
+        </activity>
     </application>
 
 </manifest>

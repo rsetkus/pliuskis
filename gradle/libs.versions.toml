@@ -38,6 +38,10 @@ ksp = "2.3.14"
 # SKIE hooks into the Kotlin/Native compiler, and each SKIE release supports only certain Kotlin versions. Upgrade
 # SKIE together with Kotlin (`kotlin` above).
 skie = "0.10.16"
+# Ktor: the HTTP client of the Cognito sign-in (core:data), with an engine per platform.
+ktor = "3.6.1"
+# 1.9 and later need compileSdk 36 (see COMPILE_SDK in build-logic).
+androidxBrowser = "1.8.0"
 
 [libraries]
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "androidxComposeBom" }
@@ -60,6 +64,11 @@ koin-core = { group = "io.insert-koin", name = "koin-core", version.ref = "koin"
 koin-compose = { group = "io.insert-koin", name = "koin-androidx-compose",  version.ref = "koin" }
 hiveMqClient = { group = "com.hivemq", name = "hivemq-mqtt-client", version.ref = "hiveMqClient" }
 arrowCore = { group = "io.arrow-kt", name = "arrow-core", version.ref = "arrow" }
+ktor-client-core = { group = "io.ktor", name = "ktor-client-core", version.ref = "ktor" }
+ktor-client-android = { group = "io.ktor", name = "ktor-client-android", version.ref = "ktor" }
+ktor-client-darwin = { group = "io.ktor", name = "ktor-client-darwin", version.ref = "ktor" }
+ktor-client-mock = { group = "io.ktor", name = "ktor-client-mock", version.ref = "ktor" }
+androidx-browser = { group = "androidx.browser", name = "browser", version.ref = "androidxBrowser" }
 
 # Compose libs
 androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }

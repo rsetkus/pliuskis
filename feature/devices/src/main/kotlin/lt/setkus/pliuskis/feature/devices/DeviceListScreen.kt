@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -57,7 +58,8 @@ private val StatusDotSize = 8.dp
 
 /**
  * The device list ("Your garden"). In a two-pane layout ([twoPane]) the [selectedDeviceId] row is highlighted and rows
- * drop their chevron, because the detail is already beside the list.
+ * drop their chevron, because the detail is already beside the list. [topBarActions] sit at the end of the top bar
+ * (the app puts its account menu there).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,6 +71,7 @@ internal fun DeviceListScreen(
     modifier: Modifier = Modifier,
     selectedDeviceId: String? = null,
     twoPane: Boolean = false,
+    topBarActions: @Composable RowScope.() -> Unit = {},
 ) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     Column(
@@ -78,7 +81,8 @@ internal fun DeviceListScreen(
     ) {
         PliuskisLargeTopAppBar(
             title = stringResource(id = R.string.devices_title),
-            scrollBehavior = scrollBehavior
+            scrollBehavior = scrollBehavior,
+            actions = topBarActions
         )
         Box(modifier = Modifier.weight(1f)) {
             when (devices) {

@@ -18,6 +18,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -30,15 +31,30 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import lt.setkus.pliuskis.R
 import lt.setkus.pliuskis.core.designsystem.component.OfflineBanner
 import lt.setkus.pliuskis.core.designsystem.component.PliuskisBackground
+import lt.setkus.pliuskis.core.designsystem.component.PliuskisLoading
+import lt.setkus.pliuskis.core.presentation.session.SessionState
+import lt.setkus.pliuskis.core.presentation.session.SessionViewModel
 import lt.setkus.pliuskis.data.util.NetworkConnectivity
+import lt.setkus.pliuskis.feature.signin.AccountDeletionDialog
+import lt.setkus.pliuskis.feature.signin.AccountMenu
 import lt.setkus.pliuskis.navigation.PliuskisNavHost
+import org.koin.androidx.compose.koinViewModel
 
+/**
+ * The app: the offline banner above the screens, which follow the session of [sessionViewModel]. While the stored
+ * session is checked at launch it shows progress; then sign-in or the device list, switching when the user signs in,
+ * signs out or deletes the account. The device list's account menu (sign out, delete account) and the delete dialogs
+ * are wired here to the session.
+ */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun PliuskisApp(
     connectivityMonitor: NetworkConnectivity,
-    appState: PliuskisAppState = rememberPliuskisAppState(connectivityMonitor)
+    appState: PliuskisAppState = rememberPliuskisAppState(connectivityMonitor),
+    sessionViewModel: SessionViewModel = koinViewModel(),
 ) {
+    val session by sessionViewModel.state.collectAsStateWithLifecycle()
+    val accountDeletion by sessionViewModel.accountDeletion.collectAsStateWithLifecycle()
     PliuskisBackground {
         val snackbarHostState = remember { SnackbarHostState() }
         val isOffline by appState.isOffline.collectAsStateWithLifecycle()
@@ -55,18 +71,32 @@ fun PliuskisApp(
                 AnimatedVisibility(visible = isOffline, enter = expandVertically(), exit = shrinkVertically()) {
                     OfflineBanner(message = stringResource(R.string.not_network_connected))
                 }
-                PliuskisNavHost(
-                    appState = appState,
-                    onShowSnackbar = { message, action ->
-                        snackbarHostState.showSnackbar(
-                            message = message,
-                            actionLabel = action,
-                            duration = SnackbarDuration.Short,
-                        ) == SnackbarResult.ActionPerformed
-                    },
-                    // The banner already sits under the status bar, so the screens' top bars mustn't pad for it again.
-                    modifier = if (isOffline) Modifier.consumeWindowInsets(WindowInsets.statusBars) else Modifier
-                )
+                if (session == SessionState.Checking) {
+                    PliuskisLoading(contentDescription = stringResource(R.string.session_checking))
+                } else {
+                    // The session at the first composition after the check decides the start; later changes navigate.
+                    val startDestination = remember { appState.destinationFor(session) }
+                    PliuskisNavHost(
+                        appState = appState,
+                        onShowSnackbar = { message, action ->
+                            snackbarHostState.showSnackbar(
+                                message = message,
+                                actionLabel = action,
+                                duration = SnackbarDuration.Short,
+                            ) == SnackbarResult.ActionPerformed
+                        },
+                        // The banner already sits under the status bar, so the screens' top bars mustn't pad again.
+                        modifier = if (isOffline) Modifier.consumeWindowInsets(WindowInsets.statusBars) else Modifier,
+                        startDestination = startDestination,
+                        deviceListActions = {
+                            AccountMenu(
+                                onSignOut = sessionViewModel::signOut,
+                                onDeleteAccount = sessionViewModel::requestAccountDeletion
+                            )
+                        }
+                    )
+                    LaunchedEffect(session) { appState.showScreenFor(session) }
+                }
             }
             SnackbarHost(
                 hostState = snackbarHostState,
@@ -75,5 +105,10 @@ fun PliuskisApp(
                     .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
             )
         }
+        AccountDeletionDialog(
+            state = accountDeletion,
+            onConfirm = sessionViewModel::confirmAccountDeletion,
+            onCancel = sessionViewModel::cancelAccountDeletion
+        )
     }
 }
