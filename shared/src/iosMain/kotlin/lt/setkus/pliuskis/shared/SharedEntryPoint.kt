@@ -108,6 +108,7 @@ private fun startShared(settings: MqttSettings, transport: MqttTransport, awsIot
                 module {
                     single { settings }
                     single { signInSettingsFromInfoPlist() }
+                    single { appleRevokeSettingsFromInfoPlist() }
                 },
                 dataModule,
                 iosDataModule(transport, awsIot = awsIot),

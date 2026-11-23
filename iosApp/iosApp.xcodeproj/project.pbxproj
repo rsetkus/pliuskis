@@ -88,6 +88,7 @@
 		BE22A108EBBA7E1F4DD2FBA4 /* PliuskisApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PliuskisApp.swift; sourceTree = "<group>"; };
 		BEDEBB5DE675662C92015474 /* UITestScenario.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UITestScenario.swift; sourceTree = "<group>"; };
 		C3CE4D5A0FE4C86755A713C6 /* ControlStatusText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlStatusText.swift; sourceTree = "<group>"; };
+		C49B0B02429FBBC9F867DDE1 /* iosApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = iosApp.entitlements; sourceTree = "<group>"; };
 		D83B611C2EB064D31271F213 /* Story5ControlStatusTextTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Story5ControlStatusTextTests.swift; sourceTree = "<group>"; };
 		DBC65CD98B167DDC0ED35FFF /* DevicesNavigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DevicesNavigation.swift; sourceTree = "<group>"; };
 		E031C60CB07D043723D4E059 /* ControlScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlScreen.swift; sourceTree = "<group>"; };
@@ -125,6 +126,7 @@
 				DBC65CD98B167DDC0ED35FFF /* DevicesNavigation.swift */,
 				41CBE1197848E24D7BEE233E /* Flora.swift */,
 				99A653A53EC1584D8417FA8D /* ForegroundRefresh.swift */,
+				C49B0B02429FBBC9F867DDE1 /* iosApp.entitlements */,
 				2D2BDCAFB819148916A14530 /* IosViewModelStoreOwner.swift */,
 				EEF1E49D8C5E3BC39463D5CE /* LiveControlScreen.swift */,
 				95D5B3B25E096DC1CD0455D3 /* LiveDeviceList.swift */,
@@ -395,7 +397,7 @@
 		};
 		586731ED97E400C1B162A39B /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			productRef = "TEMP_25C0E676-3A06-4D4D-8774-8568B8BC2B11" /* CocoaMQTT */;
+			productRef = "TEMP_5303A1E2-31FB-4EE2-9367-22735411B21C" /* CocoaMQTT */;
 		};
 		D6369A31B29DDC1641D6E6F0 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -610,6 +612,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 310E61D0D729B1CE903AB710 /* Debug.xcconfig */;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = iosApp/iosApp.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				INFOPLIST_FILE = iosApp/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -624,6 +627,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 86D8F9C9CBD84AE9E041AD22 /* Release.xcconfig */;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = iosApp/iosApp.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				INFOPLIST_FILE = iosApp/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -697,7 +701,7 @@
 			package = 6A7B48AA29D950F5023A1223 /* XCRemoteSwiftPackageReference "CocoaMQTT" */;
 			productName = CocoaMQTT;
 		};
-		"TEMP_25C0E676-3A06-4D4D-8774-8568B8BC2B11" /* CocoaMQTT */ = {
+		"TEMP_5303A1E2-31FB-4EE2-9367-22735411B21C" /* CocoaMQTT */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 6A7B48AA29D950F5023A1223 /* XCRemoteSwiftPackageReference "CocoaMQTT" */;
 			productName = CocoaMQTT;

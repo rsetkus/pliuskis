@@ -17,6 +17,8 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import lt.setkus.pliuskis.core.auth.AppleAuthorization
+import lt.setkus.pliuskis.core.auth.AppleTokenRevoker
 import lt.setkus.pliuskis.core.auth.DeleteAccountUseCase
 import lt.setkus.pliuskis.core.auth.ObserveSessionUseCase
 import lt.setkus.pliuskis.core.auth.RestoreSessionUseCase
@@ -44,7 +46,19 @@ internal class SignInHarness(
             restoreSession = RestoreSessionUseCase(authenticator, tokenStore),
             observeSession = ObserveSessionUseCase(tokenStore),
             signOut = SignOutUseCase(authenticator, tokenStore),
-            deleteAccount = DeleteAccountUseCase(authenticator, tokenStore),
+            // STORY-1's tokens name no provider, so deletion takes the plain DeleteUser path; the Apple ports are
+            // never called there (STORY-5's AppleRevokeTestHarness tests them).
+            deleteAccount = DeleteAccountUseCase(
+                authenticator = authenticator,
+                tokenStore = tokenStore,
+                appleAuthorization = object : AppleAuthorization {
+                    override suspend fun authorizationCode(): String = error("Not an Apple session")
+                },
+                appleTokenRevoker = object : AppleTokenRevoker {
+                    override suspend fun revoke(authorizationCode: String, accessToken: String) =
+                        error("Not an Apple session")
+                },
+            ),
         )
     }
 

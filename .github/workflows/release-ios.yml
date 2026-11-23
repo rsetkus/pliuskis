@@ -75,8 +75,9 @@ jobs:
       # Secrets.xcconfig (gitignored) is the template plus the release values, which override the template's: in an
       # xcconfig file the last assignment wins. The app reads BROKER_HOST and the four COGNITO_* sign-in values of the
       # prod stack through Info.plist; COGNITO_IDENTITY_POOL_ID, AWS_REGION and AMAZON_IOT_ENDPOINT (the Release MQTT
-      # connection over Cognito) are written when the environment has them. An xcconfig value can't hold `//` (a
-      # comment), so the redirect URI's `//` is written as `/$()/`. The App Store Connect API key goes to a file only
+      # connection over Cognito) and APPLE_REVOKE_API_URL (the prod stack's Apple revoke API, for account deletion) are
+      # written when the environment has them. An xcconfig value can't hold `//` (a comment), so the `//` of the
+      # redirect URI and of the revoke API URL is written as `/$()/`. The App Store Connect API key goes to a file only
       # this user can read. Neither file is printed.
       - name: Write Signing Files
         env:
@@ -92,6 +93,7 @@ jobs:
           COGNITO_IDENTITY_POOL_ID: ${{ secrets.COGNITO_IDENTITY_POOL_ID }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
           AMAZON_IOT_ENDPOINT: ${{ secrets.AMAZON_IOT_ENDPOINT }}
+          APPLE_REVOKE_API_URL: ${{ secrets.APPLE_REVOKE_API_URL }}
         run: |
           missing=0
           for name in APPLE_TEAM_ID ASC_KEY_ID ASC_ISSUER_ID ASC_PRIVATE_KEY BROKER_HOST \
@@ -116,6 +118,9 @@ jobs:
                 printf '%s[config=Release] = %s\n' "$name" "${!name}"
               fi
             done
+            if [ -n "$APPLE_REVOKE_API_URL" ]; then
+              printf 'APPLE_REVOKE_API_URL[config=Release] = %s\n' "$(printf '%s' "$APPLE_REVOKE_API_URL" | sed 's#//#/$()/#g')"
+            fi
           } > iosApp/Configuration/Secrets.xcconfig
           printf '%s\n' "$ASC_PRIVATE_KEY" > "$RUNNER_TEMP/asc-api-key.p8"
 

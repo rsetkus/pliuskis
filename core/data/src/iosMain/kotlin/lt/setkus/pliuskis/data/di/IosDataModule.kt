@@ -4,12 +4,17 @@ import io.ktor.client.engine.darwin.Darwin
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import lt.setkus.pliuskis.core.auth.AppleAuthorization
+import lt.setkus.pliuskis.core.auth.AppleTokenRevoker
 import lt.setkus.pliuskis.core.auth.Authenticator
 import lt.setkus.pliuskis.core.auth.TokenStore
 import lt.setkus.pliuskis.data.IotManager
+import lt.setkus.pliuskis.data.auth.AppleRevokeClient
 import lt.setkus.pliuskis.data.auth.AuthorizationBrowser
 import lt.setkus.pliuskis.data.auth.CognitoAuthenticator
 import lt.setkus.pliuskis.data.auth.KeychainSessionStorage
+import lt.setkus.pliuskis.data.auth.LambdaAppleTokenRevoker
+import lt.setkus.pliuskis.data.auth.NativeAppleAuthorization
 import lt.setkus.pliuskis.data.auth.SignInSettings
 import lt.setkus.pliuskis.data.auth.StoredSessionTokenStore
 import lt.setkus.pliuskis.data.auth.WebAuthenticationBrowser
@@ -72,4 +77,8 @@ fun iosDataModule(
     single<TokenStore> { StoredSessionTokenStore(KeychainSessionStorage(), Dispatchers.Default) }
     single<AuthorizationBrowser> { WebAuthenticationBrowser() }
     single<Authenticator> { CognitoAuthenticator(get(), get(), cognitoHttpClient(Darwin)) }
+    // Apple revoke on account deletion: the native Sign in with Apple sheet (the App ID's code), then the backend's
+    // revoke endpoint; it needs the AppleRevokeSettings that initShared binds.
+    single<AppleAuthorization> { NativeAppleAuthorization() }
+    single<AppleTokenRevoker> { LambdaAppleTokenRevoker(get(), AppleRevokeClient.APP_ID, cognitoHttpClient(Darwin)) }
 }
