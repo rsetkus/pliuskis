@@ -1,7 +1,7 @@
 # Sign-in and session
 **Last verified**: 2026-11-23 (kmp_cognito_login STORY-1 / PLIUS-34, app part; STORY-5 / PLIUS-42, the Apple
-revoke of account deletion)
-**Scope**: the sign-in screen, the session kept across launches, sign-out and "Delete account", on Android and iOS.
+revoke of account deletion; STORY-6 / PLIUS-43, the public pages)
+**Scope**: the sign-in screen, the session kept across launches, sign-out and "Delete account", on Android and iOS; the public privacy policy and account-deletion pages.
 
 ## Summary
 Both apps open on a sign-in screen until someone signs in. The user signs in with Google or Apple through the Cognito
@@ -94,6 +94,47 @@ for the iOS release, in the GitHub environment `release`:
 `default.secrets.properties` and `Secrets.template.xcconfig` list every key with dummy values. With dummy values the
 apps build and show the sign-in screen, but sign-in fails (the managed login domain doesn't exist).
 
+### Privacy policy and account-deletion pages
+Both stores need a privacy policy URL, and Google Play also needs a web page where a user can ask for account
+deletion without the app. Both are on the owner's website, outside this repository, and the owner maintains them:
+
+- Privacy policy, with the section "Data Retention and Deleting Your Account":
+  https://setkus.lt/pliuskis-privacy-policy/
+- Terms of use: https://setkus.lt/pliuskis-terms/
+
+The Play Console lists the privacy policy URL and the account deletion URL (Data safety > account deletion); App Store
+Connect lists the privacy policy URL (App Privacy). For Google Play, the deletion page must show the steps to request
+deletion, which data is deleted and which is kept, and for how long. When the app's data use, the account menu or the
+deletion flow changes, update the pages for the same release.
+
+**Deleting an account on an email request (admin).** Only for a request sent from the account's email address. In
+`rsetkus/pliuskis-backend`, `envs/prod` (`envs/dev` for a test), with `AWS_PROFILE` set and
+`terraform init -backend-config=backend.hcl` done:
+
+```bash
+POOL_ID=$(terraform output -raw user_pool_id)
+IOT_POLICY=$(terraform output -raw iot_policy_name)
+REGION=$(terraform output -raw region)
+# 1. Every user with the requester's address (Google and Apple give separate users; with Apple's Hide My Email the
+#    address is the relay address the user gives).
+aws cognito-idp list-users --region "$REGION" --user-pool-id "$POOL_ID" \
+  --filter 'email = "<address>"' --query 'Users[].Username'
+# 2. For each username: delete it, then check that it is gone (UserNotFoundException).
+aws cognito-idp admin-delete-user --region "$REGION" --user-pool-id "$POOL_ID" --username "<username>"
+aws cognito-idp admin-get-user --region "$REGION" --user-pool-id "$POOL_ID" --username "<username>"
+# 3. If the user's identity was approved: withdraw the approval, check that no policy is left, delete the identity.
+aws iot detach-policy --region "$REGION" --policy-name "$IOT_POLICY" --target "<identity ID>"
+aws iot list-attached-policies --region "$REGION" --target "<identity ID>"
+aws cognito-identity delete-identities --region "$REGION" --identity-ids-to-delete "<identity ID>"
+```
+
+The identity pool can't find a user pool user's identity without that user's token, so step 3 needs the identity ID
+that was approved for this user (approvals are by hand, at the user's request, so the admin notes the address with
+the identity ID). `aws iot list-targets-for-policy --policy-name "$IOT_POLICY"` lists every approved identity. An
+identity that was never approved has no access and no personal data, and stays. Then reply to the requester that the
+account is deleted. For an Apple user, add that they can remove the app under their Apple ID's "Sign in with Apple"
+settings: the admin can't revoke the user's Apple tokens, which needs a fresh authorization code from the user.
+
 ## Key files
 - Ports and use cases: `core/domain/.../core/auth/` (`Authenticator`, `TokenStore`, `RestoreSessionUseCase`,
   `ObserveSessionUseCase`, `SignInUseCase`, `SignOutUseCase`, `DeleteAccountUseCase`; bound in `coreModule`)
@@ -113,6 +154,7 @@ apps build and show the sign-in screen, but sign-in fails (the managed login dom
 - Apple revoke: `core/domain/.../core/auth/` (`AppleAuthorization`, `AppleTokenRevoker`, `SignInProvider.kt`),
   `core/data/.../data/auth/` (`LambdaAppleTokenRevoker`, `AppleRevokeSettings`, `AppleRevokeClient`,
   `AppleWebAuthorization`; iosMain `NativeAppleAuthorization`), the backend's `modules/apple-revoke/` and `lambda/apple-revoke/`
+- Public pages: on the owner's website (setkus.lt), not in this repository
 - Tests: `Story1SessionViewModelTest`, `Story1SignInViewModelTest`, `CognitoAuthenticatorTest`,
   `Story1SignInScreenSnapshotTest`, `Story1SignInScreenTest`, `Story1SignInNavigationTest`, `Story1SignInUITests`,
   `Story1SignInSharedApiTest`, `Story1SignInSwiftTests`, `Story5AppleAccountDeletionTest`
