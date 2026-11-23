@@ -35,6 +35,9 @@ targets:
     dependencies:
       - package: CocoaMQTT
         product: CocoaMQTT
+      # MQTT over WebSocket (AWS IoT's SigV4-signed wss://<endpoint>/mqtt), a separate product of the same package.
+      - package: CocoaMQTT
+        product: CocoaMQTTWebSocket
     info:
       path: iosApp/Info.plist
       properties:
@@ -48,6 +51,11 @@ targets:
         CognitoAppClientId: $(COGNITO_APP_CLIENT_ID)
         CognitoLoginDomain: $(COGNITO_LOGIN_DOMAIN)
         CognitoRedirectUri: $(COGNITO_REDIRECT_URI)
+        # The AWS IoT connection over Cognito (identity pool, region, AWS IoT endpoint), from Secrets.xcconfig. The
+        # shared framework reads them (awsIotSettingsFromInfoPlist) when the app connects to AWS IoT (AwsIotCheck).
+        CognitoIdentityPoolId: $(COGNITO_IDENTITY_POOL_ID)
+        AwsRegion: $(AWS_REGION)
+        AmazonIotEndpoint: $(AMAZON_IOT_ENDPOINT)
         # The app talks to the MQTT broker on the local network; iOS asks the user once with this text. No Bonjour,
         # so no NSBonjourServices.
         NSLocalNetworkUsageDescription: Pliuskis connects to the MQTT broker on your local network to find your plant devices, show their status and water them.

@@ -12,6 +12,10 @@ import lt.setkus.pliuskis.core.presentation.session.SessionViewModel
 import lt.setkus.pliuskis.core.presentation.session.newSessionViewModel
 import lt.setkus.pliuskis.core.presentation.signin.SignInViewModel
 import lt.setkus.pliuskis.core.presentation.signin.newSignInViewModel
+import lt.setkus.pliuskis.data.aws.AwsIotCredentialsCache
+import lt.setkus.pliuskis.data.aws.AwsIotSettings
+import lt.setkus.pliuskis.data.aws.SecurityTokenPlacement
+import lt.setkus.pliuskis.data.aws.StaleAwsCredentialsException
 import lt.setkus.pliuskis.data.di.dataModule
 import lt.setkus.pliuskis.data.di.iosDataModule
 import lt.setkus.pliuskis.data.mqttclient.MqttSettings
@@ -20,6 +24,7 @@ import org.koin.core.context.startKoin
 import org.koin.core.parameter.parametersOf
 import org.koin.dsl.module
 import org.koin.mp.KoinPlatform
+import kotlin.coroutines.cancellation.CancellationException
 
 /*
  * The Swift-facing entry point of the `Shared` framework (Swift: `SharedEntryPointKt`). Swift calls `initShared` once
@@ -67,6 +72,36 @@ internal val sharedViewModelModule = module {
  * does nothing and keeps the first settings and transport.
  */
 fun initShared(settings: MqttSettings, transport: MqttTransport) {
+    startShared(settings, transport, awsIot = null)
+}
+
+/**
+ * Starts the shared object graph like [initShared], but the MQTT client connects to AWS IoT with the signed-in
+ * identity's temporary Cognito credentials (Swift: `SharedEntryPointKt.doInitSharedOverAwsIot(settings:transport:
+ * tokenPlacement:)`). The identity pool, region and AWS IoT endpoint come from the app's Info.plist
+ * (`CognitoIdentityPoolId`, `AwsRegion`, `AmazonIotEndpoint`); [settings] give the endpoint as host, port 443 and this
+ * install's client ID, which becomes the suffix of `<identity ID>-<install suffix>`. [transport] must connect over
+ * WebSocket to [signedAwsIotWebSocketUrl] on every attempt. [tokenPlacement] says where the signed URL carries the
+ * session token. A later call, while the graph is running, does nothing.
+ */
+fun initSharedOverAwsIot(settings: MqttSettings, transport: MqttTransport, tokenPlacement: SecurityTokenPlacement) {
+    startShared(settings, transport, awsIotSettingsFromInfoPlist(tokenPlacement))
+}
+
+/**
+ * A newly signed `wss://<endpoint>/mqtt?...` URL of AWS IoT for one connect attempt, signed now with the cached
+ * credentials (Swift: `try SharedEntryPointKt.signedAwsIotWebSocketUrl()`). It never waits for the network. It throws
+ * [StaleAwsCredentialsException] when no fresh credentials are cached (they are being refreshed, so a later attempt
+ * succeeds) or when the graph was started with [initShared] instead of [initSharedOverAwsIot]. The URL carries the
+ * signature and the session token: never log it.
+ */
+@Throws(StaleAwsCredentialsException::class, CancellationException::class)
+fun signedAwsIotWebSocketUrl(): String {
+    val credentials = KoinPlatform.getKoinOrNull()?.getOrNull<AwsIotCredentialsCache>()
+    return credentials?.signedUrlNow() ?: throw StaleAwsCredentialsException()
+}
+
+private fun startShared(settings: MqttSettings, transport: MqttTransport, awsIot: AwsIotSettings?) {
     if (KoinPlatform.getKoinOrNull() == null) {
         startKoin {
             modules(
@@ -75,7 +110,7 @@ fun initShared(settings: MqttSettings, transport: MqttTransport) {
                     single { signInSettingsFromInfoPlist() }
                 },
                 dataModule,
-                iosDataModule(transport),
+                iosDataModule(transport, awsIot = awsIot),
                 coreModule,
                 sharedViewModelModule,
                 networkStatusLogModule,

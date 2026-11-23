@@ -10,11 +10,12 @@ import platform.CoreCrypto.CC_SHA256_DIGEST_LENGTH
 @OptIn(ExperimentalForeignApi::class, ExperimentalUnsignedTypes::class)
 internal actual fun sha256(bytes: ByteArray): ByteArray {
     val digest = UByteArray(CC_SHA256_DIGEST_LENGTH)
-    if (bytes.isNotEmpty()) {
-        bytes.usePinned { input ->
-            digest.usePinned { output ->
-                CC_SHA256(input.addressOf(0), bytes.size.convert(), output.addressOf(0))
-            }
+    // usePinned needs a non-empty array for addressOf(0); an empty input is passed as one zero byte of length 0, so
+    // the result is the SHA-256 of the empty message (SigV4 hashes an empty request payload), not 32 zero bytes.
+    val input = if (bytes.isEmpty()) ByteArray(1) else bytes
+    input.usePinned { pinned ->
+        digest.usePinned { output ->
+            CC_SHA256(pinned.addressOf(0), bytes.size.convert(), output.addressOf(0))
         }
     }
     return digest.asByteArray()
