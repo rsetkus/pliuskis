@@ -42,6 +42,12 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         BrokerHost: $(BROKER_HOST)
+        # The Cognito managed login of this configuration's stack (dev for Debug, prod for Release), from
+        # Secrets.xcconfig. The shared framework reads these keys (signInSettingsFromInfoPlist).
+        CognitoUserPoolId: $(COGNITO_USER_POOL_ID)
+        CognitoAppClientId: $(COGNITO_APP_CLIENT_ID)
+        CognitoLoginDomain: $(COGNITO_LOGIN_DOMAIN)
+        CognitoRedirectUri: $(COGNITO_REDIRECT_URI)
         # The app talks to the MQTT broker on the local network; iOS asks the user once with this text. No Bonjour,
         # so no NSBonjourServices.
         NSLocalNetworkUsageDescription: Pliuskis connects to the MQTT broker on your local network to find your plant devices, show their status and water them.

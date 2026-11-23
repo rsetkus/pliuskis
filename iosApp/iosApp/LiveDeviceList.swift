@@ -6,12 +6,14 @@ import SwiftUI
 /// ViewModel's `retry()`. While the screen is shown it collects both states; an open control screen keeps the owner
 /// alive, so going back shows the same ViewModels. When the app returns from the background, the list refreshes
 /// (`DevicesViewModel.refresh()`: reconnect if needed; the broker then replays the retained device state). `selection`
-/// is the selected device of `DevicesNavigation`.
+/// is the selected device of `DevicesNavigation`. With `account`, the toolbar has the account menu (sign out, delete
+/// account).
 struct LiveDeviceList: View {
     static let devicesViewModelKey = "devices"
     static let networkStatusViewModelKey = "networkStatus"
 
     @Binding var selection: ControlRoute?
+    var account: AccountActions?
 
     @StateObject private var owner = IosViewModelStoreOwner()
     @State private var state: DevicesListScreenState?
@@ -30,6 +32,13 @@ struct LiveDeviceList: View {
             selection: $selection,
             onRetry: { devices.retry() }
         )
+        .toolbar {
+            if let account {
+                ToolbarItem(placement: .topBarTrailing) {
+                    AccountMenu(actions: account)
+                }
+            }
+        }
         .refreshOnForeground { devices.refresh() }
         .task {
             for await latest in devices.devices {

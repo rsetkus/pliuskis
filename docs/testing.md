@@ -260,7 +260,12 @@ AGENTS.md § CI) runs no tests.
   control screen that owns a Swift `Lifecycle_viewmodelViewModel` subclass through `IosViewModelStoreOwner`, so a
   test sees `onCleared` run on Back. Scenarios are in `iosApp/iosApp/UITestScenario.swift` inside `#if DEBUG`, so the Release
   build has none; a test that uses them skips itself in Release with `#if !DEBUG ... throw XCTSkip(...)`. Add a case
-  to `UITestScenario` for a new state.
+  to `UITestScenario` for a new state. Every scenario skips the session, so the device and control scenarios open
+  without sign-in. The `signIn*` scenarios show `SignInScreen` in a fixed `SignInState` and count the button taps
+  (`uiTestScenario.googleCount`, `uiTestScenario.appleCount`); `signedInLive` is the live device list with a fake
+  signed-in session (the launch test uses it). On Android, an app UI test gets a fake session by overriding
+  `Authenticator` and `TokenStore` in Koin (`app/src/androidTest/.../AppSignInFakes.kt`); see
+  `docs/features/sign-in.md`.
 - **Naming:** class `Story<N><Subject>Tests`, methods `testStory<N>_<description>`.
 - **Setup:** once per checkout, `cp iosApp/Configuration/Secrets.template.xcconfig iosApp/Configuration/Secrets.xcconfig`.
   Each build runs `./gradlew :shared:embedAndSignAppleFrameworkForXcode`, which needs JDK 17 (found with

@@ -22,6 +22,14 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>CognitoAppClientId</key>
+	<string>$(COGNITO_APP_CLIENT_ID)</string>
+	<key>CognitoLoginDomain</key>
+	<string>$(COGNITO_LOGIN_DOMAIN)</string>
+	<key>CognitoRedirectUri</key>
+	<string>$(COGNITO_REDIRECT_URI)</string>
+	<key>CognitoUserPoolId</key>
+	<string>$(COGNITO_USER_POOL_ID)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>NSLocalNetworkUsageDescription</key>

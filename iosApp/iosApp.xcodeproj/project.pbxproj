@@ -16,13 +16,17 @@
 		347C26FD866D40DD41C8902D /* CocoaMqttTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4714CF8F148207FF8AA9B987 /* CocoaMqttTransport.swift */; };
 		48DD378078DF4A8575B9DD34 /* Story6ForegroundRefreshTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00B581A263BA5013E6FC8AD4 /* Story6ForegroundRefreshTests.swift */; };
 		507B530A4DCCF275502348E4 /* Flora.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41CBE1197848E24D7BEE233E /* Flora.swift */; };
+		5171E0920FF21731F189945A /* LiveSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74250486759179508479039D /* LiveSession.swift */; };
+		56D127082C55509960AEB71C /* SignInScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83F279243E91AE1A26131D42 /* SignInScreen.swift */; };
 		5C78D8759A1D4CEBD3E1D663 /* IosViewModelStoreOwner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D2BDCAFB819148916A14530 /* IosViewModelStoreOwner.swift */; };
 		5FA6C2A1708F0A1430B80F49 /* Story4DeviceListUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BC2A17876140E99F2222B43 /* Story4DeviceListUITests.swift */; };
 		617FFD04E1A05742650EF3AB /* DeviceListScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4B26B0FBADC9E675508CBAF /* DeviceListScreen.swift */; };
 		692665F481447202B7E3F247 /* UITestScenario.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEDEBB5DE675662C92015474 /* UITestScenario.swift */; };
+		744CE19B4919F1DFE85A4C32 /* LiveSignIn.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD4F7F0A60FDAF6B4AE53040 /* LiveSignIn.swift */; };
 		A59D7A7B69355B07DF5EEF2C /* BrokerConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A20EBD74A87D746A26D7A6E /* BrokerConfiguration.swift */; };
 		B26AEFA8C3C1A244B4CF6CA3 /* Story5ControlStatusTextTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83B611C2EB064D31271F213 /* Story5ControlStatusTextTests.swift */; };
 		B996C1DCAE6FF18E59E27BA1 /* Story2MqttBrokerContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7361BA24264D6C4C2744AED1 /* Story2MqttBrokerContractTests.swift */; };
+		BC94EF2A1434CF89930C1FD6 /* Story1SignInUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2A997E8EA1EB264F1F0F119 /* Story1SignInUITests.swift */; };
 		C24956548AD98896EA854A6B /* LiveControlScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEF1E49D8C5E3BC39463D5CE /* LiveControlScreen.swift */; };
 		C50A54F306968DF5BA06C713 /* PliuskisApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE22A108EBBA7E1F4DD2FBA4 /* PliuskisApp.swift */; };
 		C8EADB38EBD3A0261D772689 /* Story3BrokerSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54761DF4742351425757C370 /* Story3BrokerSettingsTests.swift */; };
@@ -64,12 +68,15 @@
 		56583BC252B5F01ED9DEA19D /* iosAppTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = iosAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		6BC2A17876140E99F2222B43 /* Story4DeviceListUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Story4DeviceListUITests.swift; sourceTree = "<group>"; };
 		7361BA24264D6C4C2744AED1 /* Story2MqttBrokerContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Story2MqttBrokerContractTests.swift; sourceTree = "<group>"; };
+		74250486759179508479039D /* LiveSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveSession.swift; sourceTree = "<group>"; };
+		83F279243E91AE1A26131D42 /* SignInScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInScreen.swift; sourceTree = "<group>"; };
 		86038AE1032E284E79B32AD6 /* iosApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = iosApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		86D8F9C9CBD84AE9E041AD22 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
 		95D5B3B25E096DC1CD0455D3 /* LiveDeviceList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveDeviceList.swift; sourceTree = "<group>"; };
 		99A653A53EC1584D8417FA8D /* ForegroundRefresh.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForegroundRefresh.swift; sourceTree = "<group>"; };
 		9A20EBD74A87D746A26D7A6E /* BrokerConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrokerConfiguration.swift; sourceTree = "<group>"; };
 		A4B26B0FBADC9E675508CBAF /* DeviceListScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceListScreen.swift; sourceTree = "<group>"; };
+		BD4F7F0A60FDAF6B4AE53040 /* LiveSignIn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveSignIn.swift; sourceTree = "<group>"; };
 		BE22A108EBBA7E1F4DD2FBA4 /* PliuskisApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PliuskisApp.swift; sourceTree = "<group>"; };
 		BEDEBB5DE675662C92015474 /* UITestScenario.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UITestScenario.swift; sourceTree = "<group>"; };
 		C3CE4D5A0FE4C86755A713C6 /* ControlStatusText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlStatusText.swift; sourceTree = "<group>"; };
@@ -77,6 +84,7 @@
 		DBC65CD98B167DDC0ED35FFF /* DevicesNavigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DevicesNavigation.swift; sourceTree = "<group>"; };
 		E031C60CB07D043723D4E059 /* ControlScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlScreen.swift; sourceTree = "<group>"; };
 		EEF1E49D8C5E3BC39463D5CE /* LiveControlScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveControlScreen.swift; sourceTree = "<group>"; };
+		F2A997E8EA1EB264F1F0F119 /* Story1SignInUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Story1SignInUITests.swift; sourceTree = "<group>"; };
 		F543015C899423D4B01CEB2E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		FBF44703DC8C94063CCEA781 /* Story5ControlScreenUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Story5ControlScreenUITests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -108,8 +116,11 @@
 				2D2BDCAFB819148916A14530 /* IosViewModelStoreOwner.swift */,
 				EEF1E49D8C5E3BC39463D5CE /* LiveControlScreen.swift */,
 				95D5B3B25E096DC1CD0455D3 /* LiveDeviceList.swift */,
+				74250486759179508479039D /* LiveSession.swift */,
+				BD4F7F0A60FDAF6B4AE53040 /* LiveSignIn.swift */,
 				BE22A108EBBA7E1F4DD2FBA4 /* PliuskisApp.swift */,
 				2925723D1B4AC9FBF45C9F3F /* RootView.swift */,
+				83F279243E91AE1A26131D42 /* SignInScreen.swift */,
 				BEDEBB5DE675662C92015474 /* UITestScenario.swift */,
 			);
 			path = iosApp;
@@ -161,6 +172,7 @@
 			isa = PBXGroup;
 			children = (
 				020D317F408C507FAE7D7FF3 /* Story1AppLaunchUITests.swift */,
+				F2A997E8EA1EB264F1F0F119 /* Story1SignInUITests.swift */,
 				6BC2A17876140E99F2222B43 /* Story4DeviceListUITests.swift */,
 				FBF44703DC8C94063CCEA781 /* Story5ControlScreenUITests.swift */,
 			);
@@ -312,6 +324,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				2B9C32CCF54756B08C540A6A /* Story1AppLaunchUITests.swift in Sources */,
+				BC94EF2A1434CF89930C1FD6 /* Story1SignInUITests.swift in Sources */,
 				5FA6C2A1708F0A1430B80F49 /* Story4DeviceListUITests.swift in Sources */,
 				EB9C403B080A622ECAB09D99 /* Story5ControlScreenUITests.swift in Sources */,
 			);
@@ -332,8 +345,11 @@
 				5C78D8759A1D4CEBD3E1D663 /* IosViewModelStoreOwner.swift in Sources */,
 				C24956548AD98896EA854A6B /* LiveControlScreen.swift in Sources */,
 				D2AA92952E33E5027D362399 /* LiveDeviceList.swift in Sources */,
+				5171E0920FF21731F189945A /* LiveSession.swift in Sources */,
+				744CE19B4919F1DFE85A4C32 /* LiveSignIn.swift in Sources */,
 				C50A54F306968DF5BA06C713 /* PliuskisApp.swift in Sources */,
 				FFF93642A27B8411D7A8E6BE /* RootView.swift in Sources */,
+				56D127082C55509960AEB71C /* SignInScreen.swift in Sources */,
 				692665F481447202B7E3F247 /* UITestScenario.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -360,7 +376,7 @@
 		};
 		586731ED97E400C1B162A39B /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			productRef = "TEMP_EE3B91C9-7D4E-41A6-9150-C165B9077B37" /* CocoaMQTT */;
+			productRef = "TEMP_9D047806-5128-4951-AC2B-F90D224B24D6" /* CocoaMQTT */;
 		};
 		D6369A31B29DDC1641D6E6F0 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -657,7 +673,7 @@
 			package = 6A7B48AA29D950F5023A1223 /* XCRemoteSwiftPackageReference "CocoaMQTT" */;
 			productName = CocoaMQTT;
 		};
-		"TEMP_EE3B91C9-7D4E-41A6-9150-C165B9077B37" /* CocoaMQTT */ = {
+		"TEMP_9D047806-5128-4951-AC2B-F90D224B24D6" /* CocoaMQTT */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 6A7B48AA29D950F5023A1223 /* XCRemoteSwiftPackageReference "CocoaMQTT" */;
 			productName = CocoaMQTT;

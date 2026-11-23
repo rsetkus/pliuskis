@@ -1,7 +1,8 @@
 import SwiftUI
 
-/// The first screen: the device list inside the app's navigation. In the Debug build, the launch argument
-/// `-uiTestScenario <name>` replaces the live ViewModels with a fixed UI test scenario (see `UITestScenario`).
+/// The first screen: sign-in or the device list, following the session (`LiveSession`). In the Debug build, the launch
+/// argument `-uiTestScenario <name>` replaces the live ViewModels with a fixed UI test scenario (see `UITestScenario`);
+/// the device and control scenarios open without sign-in.
 struct RootView: View {
     var body: some View {
         #if DEBUG
@@ -16,10 +17,6 @@ struct RootView: View {
     }
 
     private var live: some View {
-        DevicesNavigation { selection in
-            LiveDeviceList(selection: selection)
-        } control: { route in
-            LiveControlScreen(deviceId: route.deviceId, deviceName: route.deviceName)
-        }
+        LiveSession()
     }
 }

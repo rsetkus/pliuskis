@@ -73,8 +73,11 @@ jobs:
           cache-read-only: true
 
       # Secrets.xcconfig (gitignored) is the template plus the release values, which override the template's: in an
-      # xcconfig file the last assignment wins. The app reads BROKER_HOST through Info.plist. The App Store Connect API
-      # key goes to a file only this user can read. Neither file is printed.
+      # xcconfig file the last assignment wins. The app reads BROKER_HOST and the four COGNITO_* sign-in values of the
+      # prod stack through Info.plist; COGNITO_IDENTITY_POOL_ID, AWS_REGION and AMAZON_IOT_ENDPOINT (the Release MQTT
+      # connection over Cognito) are written when the environment has them. An xcconfig value can't hold `//` (a
+      # comment), so the redirect URI's `//` is written as `/$()/`. The App Store Connect API key goes to a file only
+      # this user can read. Neither file is printed.
       - name: Write Signing Files
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -82,9 +85,17 @@ jobs:
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
           BROKER_HOST: ${{ secrets.BROKER_HOST }}
+          COGNITO_USER_POOL_ID: ${{ secrets.COGNITO_USER_POOL_ID }}
+          COGNITO_APP_CLIENT_ID: ${{ secrets.COGNITO_APP_CLIENT_ID }}
+          COGNITO_LOGIN_DOMAIN: ${{ secrets.COGNITO_LOGIN_DOMAIN }}
+          COGNITO_REDIRECT_URI: ${{ secrets.COGNITO_REDIRECT_URI }}
+          COGNITO_IDENTITY_POOL_ID: ${{ secrets.COGNITO_IDENTITY_POOL_ID }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          AMAZON_IOT_ENDPOINT: ${{ secrets.AMAZON_IOT_ENDPOINT }}
         run: |
           missing=0
-          for name in APPLE_TEAM_ID ASC_KEY_ID ASC_ISSUER_ID ASC_PRIVATE_KEY BROKER_HOST; do
+          for name in APPLE_TEAM_ID ASC_KEY_ID ASC_ISSUER_ID ASC_PRIVATE_KEY BROKER_HOST \
+            COGNITO_USER_POOL_ID COGNITO_APP_CLIENT_ID COGNITO_LOGIN_DOMAIN COGNITO_REDIRECT_URI; do
             if [ -z "${!name}" ]; then
               echo "::error::Secret $name is not set in the release environment."
               missing=1
@@ -96,6 +107,15 @@ jobs:
             cat iosApp/Configuration/Secrets.template.xcconfig
             printf 'DEVELOPMENT_TEAM = %s\n' "$APPLE_TEAM_ID"
             printf 'BROKER_HOST[config=Release] = %s\n' "$BROKER_HOST"
+            printf 'COGNITO_USER_POOL_ID[config=Release] = %s\n' "$COGNITO_USER_POOL_ID"
+            printf 'COGNITO_APP_CLIENT_ID[config=Release] = %s\n' "$COGNITO_APP_CLIENT_ID"
+            printf 'COGNITO_LOGIN_DOMAIN[config=Release] = %s\n' "$COGNITO_LOGIN_DOMAIN"
+            printf 'COGNITO_REDIRECT_URI[config=Release] = %s\n' "$(printf '%s' "$COGNITO_REDIRECT_URI" | sed 's#//#/$()/#g')"
+            for name in COGNITO_IDENTITY_POOL_ID AWS_REGION AMAZON_IOT_ENDPOINT; do
+              if [ -n "${!name}" ]; then
+                printf '%s[config=Release] = %s\n' "$name" "${!name}"
+              fi
+            done
           } > iosApp/Configuration/Secrets.xcconfig
           printf '%s\n' "$ASC_PRIVATE_KEY" > "$RUNNER_TEMP/asc-api-key.p8"
 
@@ -117,7 +137,7 @@ jobs:
           -authenticationKeyIssuerID "$ASC_ISSUER_ID"
           CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER"
 
-      # Only the two version keys: the app's Info.plist also holds the broker host.
+      # Only the two version keys: the app's Info.plist also holds the broker host and the sign-in settings.
       - name: Show Version
         run: |
           plist="$RUNNER_TEMP/iosApp.xcarchive/Products/Applications/iosApp.app/Info.plist"

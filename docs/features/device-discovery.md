@@ -1,5 +1,5 @@
 # Device discovery
-**Last verified**: 2026-11-21 (kmp_ci_cd_release STORY-4 / PLIUS-32; iOS publish waits for the PUBACK)
+**Last verified**: 2026-11-22 (kmp_cognito_login STORY-1 / PLIUS-34; the AWS IoT Core permissions of signed-in identities, retained messages on AWS IoT)
 **Scope**: how the app finds IoT devices and tracks whether they are online (device list screen and the device firmware's MQTT birth/Last Will).
 
 ## Summary
@@ -216,8 +216,17 @@ owner, which clears the ViewModel once, and the status subscription sends its UN
   (`mosquitto_pub -r -n -t devices/{id}/info`). Clear `availability` the same way.
 - **Unsubscribe on close.** `HiveMqttClientManager.subscribe` unsubscribes in `awaitClose`; otherwise every re-collect
   leaks a callback. Two collectors of the same topic filter at once would unsubscribe each other.
-- **AWS IoT Core** supports retained messages and Last Will, but the device policy needs `iot:RetainPublish`, and the
-  app policy needs `iot:Subscribe` on the `devices/+/…` topic filters plus `iot:Receive` on the matching topics.
-  Because the client ID differs per install, the app policy must also allow `iot:Connect` for any client ID and the
-  `application/{applicationId}/…` status topics for any `applicationId`.
+- **AWS IoT Core** (the Release builds, through Cognito; see [sign-in.md](sign-in.md)). The private repository
+  `rsetkus/pliuskis-backend` sets up the permissions with Terraform (its README and
+  `modules/cognito-iot/iot_permissions.tf`). A signed-in Cognito identity gets AWS IoT access only after the admin
+  attaches the app's IoT policy to it, and AWS IoT allows an action only when both that policy and the identity pool
+  role's IAM policy allow it. The app may then connect only with a client ID that starts with its own identity ID
+  (`{identityId}-{install suffix}`). It may subscribe to `devices/+/info`, `devices/+/availability` and its own reply
+  topic `application/{clientId}/+/status`, and publish to `devices/{id}/status` and `devices/{id}/command`. Neither
+  policy has `iot:RetainPublish`, so the app's publishes are never retained. AWS IoT refuses any other client ID, topic
+  filter or topic, and another client's reply topic.
+  Retained discovery works on Mosquitto (the Debug builds) but not on AWS IoT. AWS IoT Core sends a retained message
+  on subscribe only to a filter that matches its topic exactly, never to a wildcard filter such as `devices/+/info`. So
+  on AWS IoT the app sees a device only after the device publishes again while the app is subscribed, for example
+  when the device reconnects. Epic PLIUS-44 replaces this discovery with per-user topics and a devices API.
 - Every device is visible to every app; there is no per-user ownership yet.
