@@ -1,5 +1,6 @@
 # Sign-in and session
-**Last verified**: 2026-11-22 (kmp_cognito_login STORY-1 / PLIUS-34; app part)
+**Last verified**: 2026-11-23 (kmp_cognito_login STORY-1 / PLIUS-34, app part; STORY-5 / PLIUS-42, the Apple
+revoke of account deletion)
 **Scope**: the sign-in screen, the session kept across launches, sign-out and "Delete account", on Android and iOS.
 
 ## Summary
@@ -48,6 +49,29 @@ and Android Debug use the LAN broker.
    nothing. Delete calls `DeleteAccountUseCase`: Cognito `DeleteUser` on `cognito-idp.<region>.amazonaws.com` with
    the stored access token, then the stored session is removed and the app shows sign-in. If `DeleteUser` fails, the
    user stays signed in and the state is `DeleteFailed` ("Try again" or "Cancel").
+6. **Apple revoke (Apple users only).** App Store guideline 5.1.1(v) needs an Apple user's Apple tokens revoked too.
+   `DeleteAccountUseCase` reads the provider from the stored ID token's `identities` claim (`signInProvider()`,
+   `providerName` `SignInWithApple`). For an Apple user it first asks the `AppleAuthorization` port for a fresh Apple
+   authorization code (the user confirms with Apple again), then sends it to the `AppleTokenRevoker` port, and calls
+   `DeleteUser` only after the revoke succeeded. Google users, and an ID token whose provider can't be read, go
+   straight to `DeleteUser`.
+   - With Cognito federation the app never sees Apple's tokens, and Apple's revoke call needs a client secret signed
+     with the Sign in with Apple private key, which never ships in an app. So `LambdaAppleTokenRevoker` posts
+     `{"authorizationCode", "client"}` to `<APPLE_REVOKE_API_URL>/apple/revoke` with the Cognito access token as
+     `Authorization: Bearer`. The endpoint is a Go Lambda behind an API Gateway JWT authorizer in
+     `rsetkus/pliuskis-backend` (each stack accepts only its own user pool's access tokens). It exchanges the code
+     at `https://appleid.apple.com/auth/token` with the client the app names and revokes the token at
+     `/auth/revoke`; a 2xx answer means Apple revoked it.
+   - iOS (`NativeAppleAuthorization`): the native Sign in with Apple sheet (`ASAuthorizationController`, no scopes),
+     whose code belongs to the App ID (`client` `app_id`). It needs the Sign in with Apple entitlement
+     (`iosApp/iosApp/iosApp.entitlements`, from `project.yml`).
+   - Android (`AppleWebAuthorization`): Apple's authorize page in the Custom Tab with the stack's Services ID
+     (`client` `services_id`), `response_mode=form_post` and an OAuth `state`. Apple posts the code to the API's
+     `/apple/return`, which redirects the browser to `<redirect URI scheme>://apple-revoke?code=...&state=...`;
+     `SignInRedirectActivity` receives it, as for sign-in.
+   - Closing the Apple sheet or the tab is `SignInCancelledException`: nothing else is called, and the deletion
+     state goes back to `Idle` with no error. A failed revoke (or no configured API) is `DeleteFailed`, and the
+     account is kept.
 
 ```mermaid
 stateDiagram-v2
@@ -58,13 +82,14 @@ stateDiagram-v2
     SignedIn --> SignedOut: sign-out / account deleted
 ```
 
-**Configuration.** Seven keys, real values only in gitignored files (`secrets.properties`, `Secrets.xcconfig`) and,
+**Configuration.** Nine keys, real values only in gitignored files (`secrets.properties`, `Secrets.xcconfig`) and,
 for the iOS release, in the GitHub environment `release`:
 
 | Key | Read by | Android Debug | Android Release | iOS |
 |---|---|---|---|---|
 | `COGNITO_USER_POOL_ID`, `COGNITO_APP_CLIENT_ID`, `COGNITO_LOGIN_DOMAIN`, `COGNITO_REDIRECT_URI` | sign-in | `DEBUG_COGNITO_*` (dev stack) | `COGNITO_*` (prod stack) | `COGNITO_*[config=Debug]` (dev), `[config=Release]` (prod), into Info.plist `Cognito*` |
 | `COGNITO_IDENTITY_POOL_ID`, `AWS_REGION`, `AMAZON_IOT_ENDPOINT` | the Release MQTT connection over Cognito (not read yet) | none | `COGNITO_*`, `AWS_REGION`, `AMAZON_IOT_ENDPOINT` | `[config=Release]` |
+| `APPLE_REVOKE_API_URL`, `APPLE_SERVICES_ID` (the stack's `apple_revoke_api_url`, `apple_services_id` outputs) | the Apple revoke of account deletion | `DEBUG_APPLE_*` (dev stack) | `APPLE_*` (prod stack) | `APPLE_REVOKE_API_URL[config=Debug]`, `[config=Release]`, into Info.plist `AppleRevokeApiUrl`; no Services ID |
 
 `default.secrets.properties` and `Secrets.template.xcconfig` list every key with dummy values. With dummy values the
 apps build and show the sign-in screen, but sign-in fails (the managed login domain doesn't exist).
@@ -85,9 +110,12 @@ apps build and show the sign-in screen, but sign-in fails (the managed login dom
   `createSessionViewModel()` in `SharedEntryPoint.kt`, `iosApp/iosApp/` (`LiveSession.swift`, `LiveSignIn.swift`,
   `SignInScreen.swift`; `AccountMenu` and the delete alerts in `LiveSession.swift`, shown in the toolbar of
   `LiveDeviceList.swift`)
+- Apple revoke: `core/domain/.../core/auth/` (`AppleAuthorization`, `AppleTokenRevoker`, `SignInProvider.kt`),
+  `core/data/.../data/auth/` (`LambdaAppleTokenRevoker`, `AppleRevokeSettings`, `AppleRevokeClient`,
+  `AppleWebAuthorization`; iosMain `NativeAppleAuthorization`), the backend's `modules/apple-revoke/` and `lambda/apple-revoke/`
 - Tests: `Story1SessionViewModelTest`, `Story1SignInViewModelTest`, `CognitoAuthenticatorTest`,
   `Story1SignInScreenSnapshotTest`, `Story1SignInScreenTest`, `Story1SignInNavigationTest`, `Story1SignInUITests`,
-  `Story1SignInSharedApiTest`, `Story1SignInSwiftTests`
+  `Story1SignInSharedApiTest`, `Story1SignInSwiftTests`, `Story5AppleAccountDeletionTest`
 
 ## Gotchas & decisions
 - **No token in plain storage or logs.** Android encrypts the session with an AES-GCM key in the Android Keystore and
