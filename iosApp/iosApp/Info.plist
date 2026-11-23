@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>AmazonIotEndpoint</key>
+	<string>$(AMAZON_IOT_ENDPOINT)</string>
+	<key>AwsRegion</key>
+	<string>$(AWS_REGION)</string>
 	<key>BrokerHost</key>
 	<string>$(BROKER_HOST)</string>
 	<key>CFBundleDevelopmentRegion</key>
@@ -24,6 +28,8 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>CognitoAppClientId</key>
 	<string>$(COGNITO_APP_CLIENT_ID)</string>
+	<key>CognitoIdentityPoolId</key>
+	<string>$(COGNITO_IDENTITY_POOL_ID)</string>
 	<key>CognitoLoginDomain</key>
 	<string>$(COGNITO_LOGIN_DOMAIN)</string>
 	<key>CognitoRedirectUri</key>

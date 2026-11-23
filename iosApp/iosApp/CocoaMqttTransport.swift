@@ -1,4 +1,5 @@
 import CocoaMQTT
+import CocoaMQTTWebSocket
 import Foundation
 import os
 import Shared
@@ -11,12 +12,29 @@ import Shared
 /// as `onConnecting`, then `onConnected` (CONNACK accepted) or `onDisconnected`. A publish returns CocoaMQTT's packet
 /// identifier (-1 when it refuses the message) and its PUBACK is reported as `onPublishAcknowledged`; Kotlin waits for
 /// it, because CocoaMQTT also queues a QoS 1 message while disconnected. CocoaMQTT calls back on the main queue.
+///
+/// `init()` connects over plain TCP to the host and port of `connect` (the LAN broker). `init(webSocketUrlProvider:)`
+/// connects with MQTT over WebSocket instead, to the URL the provider gives for each attempt (AWS IoT's signed
+/// `wss://<endpoint>/mqtt`); CocoaMQTT's automatic reconnects ask the provider again, so every attempt gets a new URL.
 final class CocoaMqttTransport: NSObject, MqttTransport {
     private static let log = Logger(subsystem: "lt.setkus.pliuskis", category: "mqtt")
 
     var listener: MqttTransportListener?
 
+    private let webSocketUrlProvider: MqttWebSocketUrlProvider?
     private var mqtt: CocoaMQTT?
+
+    /// MQTT over plain TCP.
+    override init() {
+        webSocketUrlProvider = nil
+        super.init()
+    }
+
+    /// MQTT over WebSocket, to the URL `webSocketUrlProvider` gives for each connect attempt.
+    init(webSocketUrlProvider: MqttWebSocketUrlProvider) {
+        self.webSocketUrlProvider = webSocketUrlProvider
+        super.init()
+    }
 
     func connect(host: String, port: Int32, clientId: String) {
         let client = client(host: host, port: UInt16(clamping: port), clientId: clientId)
@@ -55,7 +73,7 @@ final class CocoaMqttTransport: NSObject, MqttTransport {
     }
 
     private func newClient(clientId: String) -> CocoaMQTT {
-        let client = CocoaMQTT(clientID: clientId)
+        let client = CocoaMQTT(clientID: clientId, socket: newSocket())
         client.cleanSession = true
         client.autoReconnect = true
         client.didChangeState = { [weak self] _, state in
@@ -80,5 +98,16 @@ final class CocoaMqttTransport: NSObject, MqttTransport {
             self?.listener?.onPublishAcknowledged(messageId: Int32(messageId))
         }
         return client
+    }
+
+    /// Plain TCP, or a WebSocket whose every connection asks the provider for its URL.
+    private func newSocket() -> CocoaMQTTSocketProtocol {
+        let socket: CocoaMQTTSocketProtocol
+        if let provider = webSocketUrlProvider {
+            socket = CocoaMQTTWebSocket(builder: PerAttemptWebSocketConnectionBuilder(provider: provider))
+        } else {
+            socket = CocoaMQTTSocket()
+        }
+        return socket
     }
 }
