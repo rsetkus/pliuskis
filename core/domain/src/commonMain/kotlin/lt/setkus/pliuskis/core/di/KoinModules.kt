@@ -21,10 +21,11 @@ val coreModule = module {
     factory { GetSystemStatusUseUseCase(get()) }
     factory { ExecuteWaterCommandUseCase(get()) }
 
-    // Sign-in and session. The Authenticator and TokenStore ports come from the platform data module.
+    // Sign-in and session. The Authenticator, TokenStore, AppleAuthorization and AppleTokenRevoker ports come from the
+    // platform data module.
     factory { RestoreSessionUseCase(get(), get()) }
     factory { ObserveSessionUseCase(get()) }
     factory { SignInUseCase(get(), get()) }
     factory { SignOutUseCase(get(), get()) }
-    factory { DeleteAccountUseCase(get(), get()) }
+    factory { DeleteAccountUseCase(get(), get(), get(), get()) }
 }

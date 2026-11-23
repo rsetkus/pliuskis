@@ -38,6 +38,12 @@ targets:
       # MQTT over WebSocket (AWS IoT's SigV4-signed wss://<endpoint>/mqtt), a separate product of the same package.
       - package: CocoaMQTT
         product: CocoaMQTTWebSocket
+    # Sign in with Apple: the native Apple sheet gives the fresh authorization code that account deletion revokes.
+    entitlements:
+      path: iosApp/iosApp.entitlements
+      properties:
+        com.apple.developer.applesignin:
+          - Default
     info:
       path: iosApp/Info.plist
       properties:
@@ -56,6 +62,9 @@ targets:
         CognitoIdentityPoolId: $(COGNITO_IDENTITY_POOL_ID)
         AwsRegion: $(AWS_REGION)
         AmazonIotEndpoint: $(AMAZON_IOT_ENDPOINT)
+        # The backend's Apple revoke API of this configuration's stack, from Secrets.xcconfig. The shared framework
+        # reads it (appleRevokeSettingsFromInfoPlist) when an Apple user deletes the account.
+        AppleRevokeApiUrl: $(APPLE_REVOKE_API_URL)
         # The app talks to the MQTT broker on the local network; iOS asks the user once with this text. No Bonjour,
         # so no NSBonjourServices.
         NSLocalNetworkUsageDescription: Pliuskis connects to the MQTT broker on your local network to find your plant devices, show their status and water them.

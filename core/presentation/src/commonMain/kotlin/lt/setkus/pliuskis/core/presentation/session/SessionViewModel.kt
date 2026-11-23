@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 import lt.setkus.pliuskis.core.auth.DeleteAccountUseCase
 import lt.setkus.pliuskis.core.auth.ObserveSessionUseCase
 import lt.setkus.pliuskis.core.auth.RestoreSessionUseCase
+import lt.setkus.pliuskis.core.auth.SignInCancelledException
 import lt.setkus.pliuskis.core.auth.SignOutUseCase
 import kotlin.experimental.ExperimentalObjCRefinement
 import kotlin.native.HiddenFromObjC
@@ -81,9 +82,11 @@ class SessionViewModel internal constructor(
     }
 
     /**
-     * Deletes the account with Cognito DeleteUser, from the confirmation or (to try again) the failure message. On
-     * success the stored session is removed and the state becomes [SessionState.SignedOut]; on failure the user stays
-     * signed in and [accountDeletion] is [AccountDeletionState.DeleteFailed].
+     * Deletes the account with Cognito DeleteUser, from the confirmation or (to try again) the failure message. An
+     * Apple user first confirms with Apple again and the Apple tokens are revoked. On success the stored session is
+     * removed and the state becomes [SessionState.SignedOut]; on failure the user stays signed in and
+     * [accountDeletion] is [AccountDeletionState.DeleteFailed]. When the user cancels the Apple confirmation, nothing
+     * is deleted and [accountDeletion] goes back to [AccountDeletionState.Idle], with no error.
      */
     fun confirmAccountDeletion() {
         val current = _accountDeletion.value
@@ -92,12 +95,16 @@ class SessionViewModel internal constructor(
             viewModelScope.launch {
                 val result = deleteAccountUseCase(Unit).first()
                 _accountDeletion.value = result.fold(
-                    ifLeft = { AccountDeletionState.DeleteFailed },
+                    ifLeft = { error -> deletionStateAfter(error) },
                     ifRight = { AccountDeletionState.Idle },
                 )
             }
         }
     }
+
+    /** A cancelled Apple confirmation is not an error: the user just chose not to delete the account. */
+    private fun deletionStateAfter(error: Throwable): AccountDeletionState =
+        if (error is SignInCancelledException) AccountDeletionState.Idle else AccountDeletionState.DeleteFailed
 }
 
 /** A session ViewModel over the session use cases, for the Koin graphs of Android and `shared`. Hidden from Swift. */

@@ -15,9 +15,9 @@ sealed interface AccountDeletionState {
     /** The confirmation is shown. */
     data object Confirming : AccountDeletionState
 
-    /** Cognito DeleteUser is running. */
+    /** The deletion is running: for an Apple user the Apple confirmation and revoke, then Cognito DeleteUser. */
     data object Deleting : AccountDeletionState
 
-    /** DeleteUser failed; the user is still signed in. */
+    /** The Apple revoke or DeleteUser failed; the user is still signed in. */
     data object DeleteFailed : AccountDeletionState
 }

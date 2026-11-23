@@ -3,13 +3,18 @@ package lt.setkus.pliuskis.data.di
 import com.hivemq.client.mqtt.mqtt3.Mqtt3Client
 import io.ktor.client.engine.android.Android
 import kotlinx.coroutines.Dispatchers
+import lt.setkus.pliuskis.core.auth.AppleAuthorization
+import lt.setkus.pliuskis.core.auth.AppleTokenRevoker
 import lt.setkus.pliuskis.core.auth.Authenticator
 import lt.setkus.pliuskis.core.auth.TokenStore
 import lt.setkus.pliuskis.data.IotManager
+import lt.setkus.pliuskis.data.auth.AppleRevokeClient
+import lt.setkus.pliuskis.data.auth.AppleWebAuthorization
 import lt.setkus.pliuskis.data.auth.AuthorizationBrowser
 import lt.setkus.pliuskis.data.auth.CognitoAuthenticator
 import lt.setkus.pliuskis.data.auth.CustomTabsAuthorizationBrowser
 import lt.setkus.pliuskis.data.auth.KeystoreSessionStorage
+import lt.setkus.pliuskis.data.auth.LambdaAppleTokenRevoker
 import lt.setkus.pliuskis.data.auth.StoredSessionTokenStore
 import lt.setkus.pliuskis.data.auth.cognitoHttpClient
 import lt.setkus.pliuskis.data.clientid.ClientIdStore
@@ -24,7 +29,7 @@ import org.koin.dsl.module
 /**
  * The Android data bindings: the HiveMQ client behind [IotManager], the Android client ID store and network
  * connectivity, and the Cognito sign-in ([Authenticator] in a Custom Tab, [TokenStore] encrypted with an Android
- * Keystore key). The app loads it next to the common `dataModule`.
+ * Keystore key, and the Apple revoke of account deletion). The app loads it next to the common `dataModule`.
  */
 val androidDataModule = module {
     single<ClientIdStore> { SharedPreferencesClientIdStore(androidContext()) }
@@ -42,4 +47,11 @@ val androidDataModule = module {
     single<TokenStore> { StoredSessionTokenStore(KeystoreSessionStorage(androidContext()), Dispatchers.IO) }
     single<AuthorizationBrowser> { CustomTabsAuthorizationBrowser(androidContext()) }
     single<Authenticator> { CognitoAuthenticator(get(), get(), cognitoHttpClient(Android)) }
+
+    // Apple revoke on account deletion: Apple's page in the Custom Tab with the stack's Services ID, then the
+    // backend's revoke endpoint. AppleRevokeSettings come from the app module, which reads BuildConfig.
+    single<AppleAuthorization> { AppleWebAuthorization(get(), get(), get()) }
+    single<AppleTokenRevoker> {
+        LambdaAppleTokenRevoker(get(), AppleRevokeClient.SERVICES_ID, cognitoHttpClient(Android))
+    }
 }

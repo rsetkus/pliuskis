@@ -79,10 +79,10 @@ the signing job never starts. The `testflight` job (`macos-26`, the same Xcode a
 GitHub environment `release` (a required reviewer; deployment refs `master` and `v*` tags), which holds the secrets
 `APPLE_TEAM_ID`, `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_PRIVATE_KEY` (the text of the App Store Connect API key's `.p8`
 file; Admin role), `BROKER_HOST` and the prod stack's sign-in values `COGNITO_USER_POOL_ID`, `COGNITO_APP_CLIENT_ID`,
-`COGNITO_LOGIN_DOMAIN`, `COGNITO_REDIRECT_URI` (required), plus `COGNITO_IDENTITY_POOL_ID`, `AWS_REGION` and
-`AMAZON_IOT_ENDPOINT` (written when set); the repository has no secrets of its own. The job writes `Secrets.xcconfig`
+`COGNITO_LOGIN_DOMAIN`, `COGNITO_REDIRECT_URI` (required), plus `COGNITO_IDENTITY_POOL_ID`, `AWS_REGION`,
+`AMAZON_IOT_ENDPOINT` and `APPLE_REVOKE_API_URL` (written when set); the repository has no secrets of its own. The job writes `Secrets.xcconfig`
 from its template plus `DEVELOPMENT_TEAM`, `BROKER_HOST[config=Release]` and the `COGNITO_*`/AWS values as
-`[config=Release]` (the redirect URI's `//` as `/$()/`), runs `xcodebuild archive` with cloud-managed signing
+`[config=Release]` (the `//` of the redirect URI and the revoke API URL as `/$()/`), runs `xcodebuild archive` with cloud-managed signing
 (`-allowProvisioningUpdates` with the API key) and `CURRENT_PROJECT_VERSION` set to the run number, then
 `xcodebuild -exportArchive` with `iosApp/ExportOptions.plist`, which uploads the build to TestFlight for internal
 testing only. The repository is public, so the job pins its actions to commit SHAs, prints no secret (xcodebuild
@@ -113,6 +113,9 @@ PLIUS-6). `Info.plist` answers export compliance with `ITSAppUsesNonExemptEncryp
     as `/$()/` (an xcconfig treats `//` as a comment)
   - For the Release MQTT connection over Cognito (prod stack): `COGNITO_IDENTITY_POOL_ID`, `AWS_REGION` and
     `AMAZON_IOT_ENDPOINT`, on both apps
+  - For the Apple revoke of account deletion (the stack's `apple_revoke_api_url` and `apple_services_id` outputs):
+    Android `APPLE_REVOKE_API_URL`, `APPLE_SERVICES_ID` and the same keys with `DEBUG_`; iOS
+    `APPLE_REVOKE_API_URL`, `[config=Debug]` and `[config=Release]` (the native Apple sheet uses the App ID)
 - **Debug broker** — the debug build connects to `DEBUG_BROKER_HOST`:1883 (default `10.0.2.2`, the emulator's alias
   for the host). Set it in `secrets.properties` to a LAN address to run the debug build on a physical phone.
 
