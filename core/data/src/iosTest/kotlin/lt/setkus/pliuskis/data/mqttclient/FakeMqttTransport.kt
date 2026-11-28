@@ -32,6 +32,15 @@ class FakeMqttTransport : MqttTransport {
         connectCalls += ConnectCall(host, port, clientId)
     }
 
+    /** The client closed the transport; CocoaMQTT then reports the connection as gone. */
+    override fun disconnect() {
+        disconnectCalls++
+        listener?.onDisconnected()
+    }
+
+    var disconnectCalls = 0
+        private set
+
     override fun subscribe(topicFilter: String) {
         subscribes += topicFilter
     }

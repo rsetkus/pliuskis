@@ -49,6 +49,8 @@ private class Story3DeniedLocalNetworkTransport : MqttTransport {
         connectRequested = true
     }
 
+    override fun disconnect() = Unit
+
     override fun subscribe(topicFilter: String) = Unit
 
     override fun unsubscribe(topicFilter: String) = Unit

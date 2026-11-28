@@ -7,7 +7,9 @@ import lt.setkus.pliuskis.core.di.coreModule
 import lt.setkus.pliuskis.data.di.androidDataModule
 import lt.setkus.pliuskis.data.di.dataModule
 import lt.setkus.pliuskis.feature.devices.devicesModule
+import lt.setkus.pliuskis.feature.signin.signInModule
 import lt.setkus.pliuskis.main.mainModule
+import lt.setkus.pliuskis.signin.signInSettingsModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
@@ -23,7 +25,17 @@ class MyApplication : Application() {
         startKoin {
             androidLogger()
             androidContext(this@MyApplication)
-            modules(brokerModule, dataModule, androidDataModule, coreModule, mainModule, devicesModule, controlModule)
+            modules(
+                brokerModule,
+                signInSettingsModule,
+                dataModule,
+                androidDataModule,
+                coreModule,
+                mainModule,
+                signInModule,
+                devicesModule,
+                controlModule,
+            )
         }
     }
 }

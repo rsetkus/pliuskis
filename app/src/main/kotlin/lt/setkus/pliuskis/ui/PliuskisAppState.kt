@@ -12,7 +12,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted.Companion.WhileSubscribed
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import lt.setkus.pliuskis.core.presentation.session.SessionState
 import lt.setkus.pliuskis.data.util.NetworkConnectivity
+import lt.setkus.pliuskis.feature.devices.navigation.DEVICES_ROUTE_PATTERN
+import lt.setkus.pliuskis.feature.signin.navigation.SIGN_IN_ROUTE
 
 private const val STOP_TIMEOUT_MILLIS = 5_000L
 
@@ -43,4 +46,24 @@ class PliuskisAppState(
             started = WhileSubscribed(STOP_TIMEOUT_MILLIS),
             initialValue = false
         )
+
+    /** The destination the app shows for [session]: the devices when signed in, sign-in otherwise. */
+    fun destinationFor(session: SessionState): String =
+        if (session == SessionState.SignedIn) DEVICES_ROUTE_PATTERN else SIGN_IN_ROUTE
+
+    /**
+     * Shows the destination for [session], as the only entry of the back stack: Back from the device list after
+     * sign-in closes the app instead of returning to sign-in, and signing out pops the device screens, which clears
+     * their ViewModels (the device list's and the control screens').
+     */
+    fun showScreenFor(session: SessionState) {
+        val destination = destinationFor(session)
+        val current = navController.currentBackStackEntry?.destination?.route
+        if (current != null && current != destination) {
+            navController.navigate(destination) {
+                popUpTo(navController.graph.id) { inclusive = true }
+                launchSingleTop = true
+            }
+        }
+    }
 }

@@ -50,6 +50,8 @@ private class Story4SilentTransport : MqttTransport {
 
     override fun connect(host: String, port: Int, clientId: String) = Unit
 
+    override fun disconnect() = Unit
+
     override fun subscribe(topicFilter: String) = Unit
 
     override fun unsubscribe(topicFilter: String) = Unit

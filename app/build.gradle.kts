@@ -14,6 +14,23 @@ val versionProperties = Properties().apply {
     load(StringReader(providers.fileContents(versionFile).asText.get()))
 }
 
+/*
+ * The scheme of the sign-in redirect URI, for the intent filter of SignInRedirectActivity (AndroidManifest.xml). Each
+ * build type reads its own stack's redirect URI from the secrets files, as the secrets plugin does: debug the dev
+ * stack's DEBUG_COGNITO_REDIRECT_URI, release the prod stack's COGNITO_REDIRECT_URI.
+ */
+val secretsProperties = Properties().apply {
+    listOf("default.secrets.properties", "secrets.properties")
+        .map { rootProject.layout.projectDirectory.file(it) }
+        .filter { it.asFile.exists() }
+        .forEach { load(StringReader(providers.fileContents(it).asText.get())) }
+}
+
+fun redirectScheme(key: String): String {
+    val redirectUri = checkNotNull(secretsProperties.getProperty(key)) { "$key is missing in the secrets files" }
+    return redirectUri.trim().removeSurrounding("\"").substringBefore("://")
+}
+
 android {
     namespace = "lt.setkus.pliuskis"
     // brokerModule reads the broker and keystore settings from BuildConfig (filled by the secrets plugin)
@@ -30,7 +47,11 @@ android {
     }
 
     buildTypes {
+        debug {
+            manifestPlaceholders["signInRedirectScheme"] = redirectScheme("DEBUG_COGNITO_REDIRECT_URI")
+        }
         release {
+            manifestPlaceholders["signInRedirectScheme"] = redirectScheme("COGNITO_REDIRECT_URI")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -56,9 +77,11 @@ secrets {
 dependencies {
     implementation(projects.feature.devices)
     implementation(projects.feature.control)
+    implementation(projects.feature.signin)
 
     implementation(projects.core.domain)
     implementation(projects.core.data)
+    implementation(projects.core.presentation)
     implementation(projects.core.designsystem)
 
     implementation(libs.androidx.lifecycle.ktx)
@@ -93,7 +116,8 @@ dependencies {
     testImplementation(libs.kotest.assertions.core)
 
     androidTestImplementation(libs.androidx.compose.ui.test.junit)
-    androidTestImplementation(libs.androidx.compose.ui.test.manifest)
+    // The Compose rule's ComponentActivity must be in the app's own (debug) manifest: app tests run in the app process.
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 
     // Espresso tests
     androidTestImplementation(libs.junit.ext)

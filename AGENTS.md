@@ -78,8 +78,11 @@ version tag `v*`, never by a pull request. A Linux `guard` job fails for any ref
 the signing job never starts. The `testflight` job (`macos-26`, the same Xcode and JDK 17 as the iOS checks) uses the
 GitHub environment `release` (a required reviewer; deployment refs `master` and `v*` tags), which holds the secrets
 `APPLE_TEAM_ID`, `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_PRIVATE_KEY` (the text of the App Store Connect API key's `.p8`
-file; Admin role) and `BROKER_HOST`; the repository has no secrets of its own. The job writes `Secrets.xcconfig` from its
-template plus `DEVELOPMENT_TEAM` and `BROKER_HOST[config=Release]`, runs `xcodebuild archive` with cloud-managed signing
+file; Admin role), `BROKER_HOST` and the prod stack's sign-in values `COGNITO_USER_POOL_ID`, `COGNITO_APP_CLIENT_ID`,
+`COGNITO_LOGIN_DOMAIN`, `COGNITO_REDIRECT_URI` (required), plus `COGNITO_IDENTITY_POOL_ID`, `AWS_REGION`,
+`AMAZON_IOT_ENDPOINT` and `APPLE_REVOKE_API_URL` (written when set); the repository has no secrets of its own. The job writes `Secrets.xcconfig`
+from its template plus `DEVELOPMENT_TEAM`, `BROKER_HOST[config=Release]` and the `COGNITO_*`/AWS values as
+`[config=Release]` (the `//` of the redirect URI and the revoke API URL as `/$()/`), runs `xcodebuild archive` with cloud-managed signing
 (`-allowProvisioningUpdates` with the API key) and `CURRENT_PROJECT_VERSION` set to the run number, then
 `xcodebuild -exportArchive` with `iosApp/ExportOptions.plist`, which uploads the build to TestFlight for internal
 testing only. The repository is public, so the job pins its actions to commit SHAs, prints no secret (xcodebuild
@@ -99,6 +102,20 @@ PLIUS-6). `Info.plist` answers export compliance with `ITSAppUsesNonExemptEncryp
 - **AWS IoT credentials** — copy `default.secrets.properties` to `secrets.properties` and fill in:
   - `AMAZON_IOT_ENDPOINT`, `KEYSTORE_NAME`, `KEYSTORE_PASSWORD`, `CERT_ID`
   - The release build also needs the client keystore at `app/src/main/assets/legacy-keystore.p12` (gitignored)
+- **Cognito sign-in** — the values are outputs of the `rsetkus/pliuskis-backend` stacks (dev for Debug, prod for
+  Release); `default.secrets.properties` and `Secrets.template.xcconfig` hold only dummy values, with which both apps
+  build and show sign-in, but can't sign in (see `docs/features/sign-in.md`):
+  - Android `secrets.properties`: `DEBUG_COGNITO_USER_POOL_ID`, `DEBUG_COGNITO_APP_CLIENT_ID`,
+    `DEBUG_COGNITO_LOGIN_DOMAIN`, `DEBUG_COGNITO_REDIRECT_URI` (dev stack, debug build) and the same keys without
+    `DEBUG_` (prod stack, release build); the redirect URI's scheme becomes the intent filter of the redirect activity
+  - iOS `Secrets.xcconfig`: `COGNITO_USER_POOL_ID`, `COGNITO_APP_CLIENT_ID`, `COGNITO_LOGIN_DOMAIN`,
+    `COGNITO_REDIRECT_URI`, each `[config=Debug]` (dev) and `[config=Release]` (prod); write the redirect URI's `//`
+    as `/$()/` (an xcconfig treats `//` as a comment)
+  - For the Release MQTT connection over Cognito (prod stack): `COGNITO_IDENTITY_POOL_ID`, `AWS_REGION` and
+    `AMAZON_IOT_ENDPOINT`, on both apps
+  - For the Apple revoke of account deletion (the stack's `apple_revoke_api_url` and `apple_services_id` outputs):
+    Android `APPLE_REVOKE_API_URL`, `APPLE_SERVICES_ID` and the same keys with `DEBUG_`; iOS
+    `APPLE_REVOKE_API_URL`, `[config=Debug]` and `[config=Release]` (the native Apple sheet uses the App ID)
 - **Debug broker** — the debug build connects to `DEBUG_BROKER_HOST`:1883 (default `10.0.2.2`, the emulator's alias
   for the host). Set it in `secrets.properties` to a LAN address to run the debug build on a physical phone.
 
@@ -154,6 +171,7 @@ feature/               — Android only: Compose UI, navigation, Koin wiring of 
                          (display text, date format, icons); no ViewModel classes
   devices/             — Device list screen and the list-detail layout (`DevicesListDetail`)
   control/             — Device control screen (`ControlPane`, the detail pane)
+  signin/              — Sign-in screen (`SignInScreen`), the account menu and the delete-account dialogs
 shared/                — iOS umbrella KMP module: builds the static framework `Shared` (iosArm64, iosSimulatorArm64)
                          with SKIE; Swift API `initShared(settings, transport)`, the ViewModel factories and `ScreenViewModels`
                          (iosMain)
@@ -172,19 +190,47 @@ build-logic/           — Gradle convention plugins (application, library, feat
 **Use Cases** — every business operation is a use case implementing `BaseUseCase<T, R>`. They return `Flow<Either<Throwable, R>>` using Arrow-kt for error handling.
 
 **IoT/MQTT** — `IotManager` is the abstract interface (commonMain); `HiveMqttClientManager` is the HiveMQ implementation (androidMain). On iOS the socket is CocoaMQTT (Swift, SwiftPM, pinned in `iosApp/project.yml`): `CocoaMqttTransport` (`iosApp`) implements the Kotlin `MqttTransport` protocol and is passed to `initShared`; `IosMqttClientManager` (`core/data` iosMain, `internal`) implements `IotManager` over it and owns the contract logic (one connect attempt, the 10 s wait, re-subscribe after every CONNACK, unsubscribe on cancel, topic matching, UTF-8, publish waits for the PUBACK). `iosDataModule(transport)` binds it, and `NetworkConnectivity` to `IosNetworkConnectivity` over `NWPathMonitor`. `app`'s `brokerModule` picks the debug or production `MqttSettings` from `BuildConfig` and passes them to `core/data` through Koin; `core/data` reads no `BuildConfig`. Device communication is message-based via MQTT topics.
+Release builds of both apps connect to AWS IoT (prod stack) with the signed-in user's Cognito identity, with no
+certificate: `MqttSettings` with `TlsMode.WEBSOCKET_SIGV4` (`wss://<endpoint>:443/mqtt`, client ID `<identity
+ID>-<install suffix>`) and `AwsIotSettings` (identity pool, region, endpoint). `AwsIotCredentialsCache` (`core/data`
+commonMain, plain HTTPS to the identity pool) keeps the temporary credentials fresh, and `signAwsIotWebSocketUrl`
+(commonMain) signs a new SigV4 URL (service `iotdevicegateway`, session token appended) for every connect and every
+automatic reconnect. On iOS the WebSocket transport (`CocoaMqttTransport(webSocketUrlProvider:)`) asks for a URL on
+every attempt; the Kotlin `MqttTransport` has `disconnect()` and its listener `onConnectionRefused()`. On Android
+`AwsIotMqttClientManager` runs HiveMQ's reconnects through its reconnector and connects through
+`SignedWebSocketRelay` (127.0.0.1), because HiveMQ re-escapes a signed query. An identity without AWS IoT access gets
+`MqttConnectionState.REFUSED` (`IotAccessDeniedException`): the device list is empty, and nothing retries on its own.
+Debug builds sign in (dev stack) but keep the LAN broker: plaintext, port 1883, no credentials, no signing. Details:
+`docs/features/device-discovery.md`.
+
+**Sign-in and session** — Google and Apple through the Cognito user pool's managed login, on both apps and both build
+types (see `docs/features/sign-in.md`). `core/domain` has the ports `Authenticator` and `TokenStore` and the use cases
+(`RestoreSessionUseCase`, `ObserveSessionUseCase`, `SignInUseCase`, `SignOutUseCase`, `DeleteAccountUseCase`);
+`core/presentation` has `SignInViewModel` and `SessionViewModel` (the app's session: `Checking`, `SignedOut`,
+`SignedIn`). `CognitoAuthenticator` (`core/data` commonMain) is plain HTTPS over Ktor with PKCE, no AWS SDK; the
+platform parts are the browser (Custom Tabs; `ASWebAuthenticationSession`) and the token storage (an Android
+Keystore-encrypted file; the Keychain), never SharedPreferences or UserDefaults. `app`'s `signInSettingsModule` picks
+the dev or prod `SignInSettings` from `BuildConfig`; iOS reads them from Info.plist in `initShared`. The app shows
+sign-in or the device list from the session state; the device list's account menu signs out or deletes the account.
 
 **Dependency Injection** — Koin; each module declares its own Koin module (e.g., `dataModule`, `devicesModule`), all loaded in `MyApplication`. A shared module splits its bindings into a common module and a platform module: `core/data` has `dataModule` (commonMain), `androidDataModule` (androidMain) and `iosDataModule` (iosMain); the app loads the first two, `initShared` the first and the last.
 
 **State management** — ViewModels live in `core/presentation` (commonMain, the multiplatform `androidx.lifecycle.ViewModel`) and expose `StateFlow`; UI state sealed classes follow the `Loading / Success / Error` pattern (e.g., `DevicesListScreenState`). A ViewModel gets its arguments through its constructor (e.g. `ControlViewModel(deviceId, ...)`); on Android the list-detail layout passes the selected device's id to `ControlPane`, which passes it with Koin `parametersOf`. UI state holds meanings, not display text (e.g. `HumidityStatus.THIRSTY`); each platform maps them to its own text.
 
 **Swift API (`shared`)** — Swift calls `initShared(settings, transport)` once (it starts Koin; a second call does nothing),
-with `MqttSettings` from `BrokerConfiguration` (host from `BROKER_HOST` of the xcconfig, via Info.plist) and the
-per-install client ID from `installClientId()` (kept in UserDefaults), then
-creates ViewModels with `createDevicesViewModel()`, `createControlViewModel(deviceId)` and
-`createNetworkStatusViewModel()` (the offline banner state; Android keeps it app-level in `PliuskisAppState`). A SwiftUI screen owns its
+with `MqttSettings` from `BrokerConfiguration` and the per-install client ID from `installClientId()` (kept in
+UserDefaults). The Info.plist key `MqttConnection` (`MQTT_CONNECTION` of `Base.xcconfig`) picks the connection: in
+Debug (`lan`) the LAN broker, host from `BROKER_HOST` of the xcconfig, with `initShared`; in Release (`awsIot`) AWS
+IoT, the endpoint `AMAZON_IOT_ENDPOINT`, with `initSharedOverAwsIot(settings, transport, tokenPlacement)` and a
+`CocoaMqttTransport(webSocketUrlProvider: AwsIotWebSocketUrlProvider())`, which signs each attempt's URL through
+`signedAwsIotWebSocketUrl()` (a Debug build does the same when launched with `-awsIotCheck YES`). It then
+creates ViewModels with `createDevicesViewModel()`, `createControlViewModel(deviceId)`,
+`createNetworkStatusViewModel()` (the offline banner state; Android keeps it app-level in `PliuskisAppState`),
+`createSignInViewModel()` and `createSessionViewModel()` (the app's session, owned by `LiveSession`). `initShared`
+also binds the sign-in settings from the Info.plist keys `Cognito*`. A SwiftUI screen owns its
 ViewModels through `IosViewModelStoreOwner` (`iosApp`, held with `@StateObject`), which keeps them in a Kotlin
 `ScreenViewModels` (an androidx `ViewModelStore`) and clears it when the screen goes away, so `onCleared` runs once. Swift never sees Koin, use
-cases, `Either` or `IotManager`: `shared` exports only `core:presentation`; `MqttSettings` and `TlsMode` get exact
+cases, `Either`, `IotManager` or the Cognito client: `shared` exports only `core:presentation`; `MqttSettings` and `TlsMode` get exact
 Swift names with `@ObjCName(exact = true)`; declarations Swift must not use are `internal` or `@HiddenFromObjC` (e.g.
 `newControlViewModel`, which Android uses because the `ControlViewModel` constructor is `internal`). A Flow exposed to
 Swift never throws: errors become an `Error` UI state. A `suspend` or throwing function added to the Swift API needs
@@ -213,6 +259,12 @@ Convention plugin `pliuskis.code.quality` applies Detekt and Ktlint to all modul
 The device firmware is `rsetkus/pico-pliuskis` (MicroPython on a Raspberry Pi Pico W). The app and the firmware only
 meet through MQTT topics (see `docs/features/device-discovery.md`), so a topic or payload change must be made in both
 repos.
+
+The backend is the private repository `rsetkus/pliuskis-backend`: the Terraform setup of the Cognito user pool (Google
+and Apple), its app client, the identity pool and the AWS IoT permissions of signed-in identities, deployed as a dev
+stack (Debug builds) and a prod stack (Release builds) in eu-north-1. This repository holds no infrastructure code and
+no real pool ID; the apps read the stacks' outputs from their gitignored configuration (see Setup Requirements). A
+change to the sign-in (scopes, redirect URI, providers) must match the app client there.
 
 ## Agent files
 

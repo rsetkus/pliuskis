@@ -26,6 +26,7 @@ private final class RefusingMqttTransport: NSObject, MqttTransport {
         listener?.onDisconnected()
     }
 
+    func disconnect() {}
     func subscribe(topicFilter: String) {}
 
     func unsubscribe(topicFilter: String) {}

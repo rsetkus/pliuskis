@@ -59,6 +59,8 @@ internal class RetainingBrokerTransport : MqttTransport {
         requireListener().onConnecting()
     }
 
+    override fun disconnect() = Unit
+
     override fun subscribe(topicFilter: String) {
         subscribes += topicFilter
         if (connected) {

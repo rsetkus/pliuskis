@@ -1,5 +1,5 @@
 # Device discovery
-**Last verified**: 2026-11-21 (kmp_ci_cd_release STORY-4 / PLIUS-32; iOS publish waits for the PUBACK)
+**Last verified**: 2026-11-25 (kmp_cognito_login STORY-2 / PLIUS-35; release builds connect to AWS IoT over a SigV4-signed WebSocket with the signed-in user's Cognito identity)
 **Scope**: how the app finds IoT devices and tracks whether they are online (device list screen and the device firmware's MQTT birth/Last Will).
 
 ## Summary
@@ -65,18 +65,66 @@ disconnected is lost. So the control screen asks again:
 Neither path ever publishes a water command; only the user's tap (`ControlViewModel.waterPlant`) does.
 
 Error path: a malformed info payload is logged and skipped, and the other devices keep updating. The screen turns into
-`Error` when the connection fails (an exception, or a broker that rejects the connection) or when the subscription
-itself fails. A failed connection never subscribes. On `Error`, the device list shows the generic `ErrorScreen` from
+`Error` when the connection fails (an exception, a socket error, no credentials from Cognito) or when the subscription
+itself fails. A broker that answers but refuses the signed-in identity (`IotAccessDeniedException`, see
+[The release connection](#the-release-connection-aws-iot-over-cognito)) is not an error: the list is empty. A failed connection never subscribes. On `Error`, the device list shows the generic `ErrorScreen` from
 `core/designsystem` with texts from string resources and a Retry button; the exception is logged, never shown. Retry runs
 connect-then-discover again (`DevicesViewModel.retry`) and is ignored while a connect is still running, so repeated
 taps start only one connect.
 
+### The release connection: AWS IoT over Cognito
+Release builds of both apps connect to the prod stack's AWS IoT with the signed-in user's Cognito identity (sign-in:
+[sign-in.md](sign-in.md)); no certificate is in either app. Debug builds sign in too (dev stack), but MQTT stays on the
+LAN broker: plaintext TCP on port 1883, the 23-character install client ID, no AWS credentials and no signing.
+
+- **Settings.** `MqttSettings` with `TlsMode.WEBSOCKET_SIGV4`: the host is the AWS IoT endpoint (`AMAZON_IOT_ENDPOINT`),
+  the port 443, and the client ID the install suffix; `connectionTarget` is `wss://<endpoint>:443/mqtt`. The identity
+  pool, region and endpoint are `AwsIotSettings` (Android: `brokerModule` from `COGNITO_IDENTITY_POOL_ID`, `AWS_REGION`,
+  `AMAZON_IOT_ENDPOINT` of `secrets.properties`; iOS: `initSharedOverAwsIot` from the Info.plist keys
+  `CognitoIdentityPoolId`, `AwsRegion`, `AmazonIotEndpoint`). Android release declares no `MqttTlsSetup`.
+- **Credentials.** `AwsIotCredentialsCache` (`core/data` commonMain) gets the identity ID (`GetId`) once and temporary
+  credentials (`GetCredentialsForIdentity`, about 1 hour) with the user pool's ID token, over plain HTTPS
+  (`CognitoIdentityClient`). Before every attempt (`clientIdForAttempt`) it gets new credentials when the cached ones
+  expire within 5 minutes; a refused ID token is refreshed once with the refresh token. Signed out, it makes no Cognito
+  call and no attempt is made; signing out also closes the open connection, so nothing reconnects as the old identity.
+- **A new URL on every connect and reconnect.** `signAwsIotWebSocketUrl` (commonMain, the same code on both apps)
+  signs `wss://<endpoint>/mqtt` with SigV4 (service `iotdevicegateway`, `X-Amz-SignedHeaders=host`) at the time of the
+  attempt, and appends `X-Amz-Security-Token` after the signature, the only form AWS IoT accepts. Every query
+  value is percent-encoded, so the token's `+`, `/` and `=` are `%2B`, `%2F`, `%3D`. AWS IoT closes a SigV4
+  connection after 24 hours at most; the clients' automatic reconnects then sign a new URL with new credentials.
+  - iOS: CocoaMQTT's WebSocket asks `AwsIotWebSocketUrlProvider` for the URL of every attempt, its own automatic
+    reconnects included (`PerAttemptWebSocketConnectionBuilder`).
+  - Android: HiveMQ reconnects with the same transport settings, so `AwsIotMqttClientManager` makes HiveMQ's
+    reconnects itself through its reconnector and signs a new URL before each one. HiveMQ escapes a `%` in its
+    WebSocket query again (`%2B` becomes `%252B`; AWS IoT answers 403, and also to a raw `+`), so HiveMQ connects in
+    plain WebSocket to `SignedWebSocketRelay` inside the app (127.0.0.1, a one-time path per attempt), which opens TLS
+    to the endpoint (host name checked) with the signed URL and copies the bytes both ways.
+- **Client ID** `<Cognito identity ID>-<install suffix>`, e.g. `eu-north-1:1b2c3d4e-...-testA`: also the
+  `applicationId` of the status request and reply topic. Two installs of one account have different IDs, so both stay
+  connected. HiveMQ fixes the client ID when it is built, so Android builds a client per identity; a sign-in with
+  another account connects with that account's identity ID.
+- **No AWS IoT access.** An identity the admin has not approved signs in, gets credentials, and AWS IoT then refuses
+  it: it closes the connection after the CONNECT and before any CONNACK (or answers the upgrade with HTTP 403). The
+  client reports `MqttConnectionState.REFUSED` (iOS: the transport's `onConnectionRefused`; Android: the relay saw an
+  answer from AWS, and no CONNACK came), `ConnectMqttSource` throws `IotAccessDeniedException`, and the device list
+  shows "No devices yet", not the error screen. The client then makes no attempt by itself (CocoaMQTT's automatic
+  reconnect is turned off, HiveMQ's reconnect is held); "Search again" and the return to the foreground make one new
+  attempt each, with new credentials. A socket error before any answer (no network, DNS) is still `FAILED` and the
+  error screen, and the clients keep reconnecting.
+- **Logs.** No credential, token or signed URL is logged: the iOS transport logs host, port, path, `X-Amz-Date` and
+  the query parameter names; the credentials cache logs the expiry and a short hash of the access key ID. On the
+  Simulator, CFNetwork logs the full URL of a failing WebSocket request (a device shows it as `<private>`); never copy
+  such a log line unredacted.
+
 ### iOS client
 iOS uses the same topics and the same shared code from `ConnectUseCase` up; only the `IotManager` differs. The MQTT
 socket is CocoaMQTT (Swift, MQTT 3.1.1, clean session, automatic reconnect), wrapped as `CocoaMqttTransport` in
-`iosApp` and passed to `initShared` as the Kotlin `MqttTransport`. The transport only moves packets and reports
-`onConnecting` / `onConnected` (CONNACK accepted) / `onDisconnected` / `onMessage` / `onPublishAcknowledged` (PUBACK
-of the packet identifier that `publish` returned). `IosMqttClientManager`
+`iosApp` and passed to `initShared` as the Kotlin `MqttTransport`: plain TCP to the LAN broker (`init()`), or MQTT
+over WebSocket to AWS IoT (`init(webSocketUrlProvider:)`). The transport only moves packets and reports
+`onConnecting` / `onConnected` (CONNACK accepted) / `onDisconnected` / `onConnectionRefused` (the broker answered and
+refused: a refusing CONNACK, an upgrade answered with an HTTP error, or a WebSocket that closed before the CONNACK) /
+`onMessage` / `onPublishAcknowledged` (PUBACK of the packet identifier that `publish` returned); `disconnect()` closes
+the connection and turns the automatic reconnect off until the next `connect`. `IosMqttClientManager`
 (`core/data` iosMain) implements the `IotManager` contract on top:
 - one connect attempt at a time: `connect()` on a connected client returns at once; while an attempt runs (a caller's
   or CocoaMQTT's automatic reconnect) it waits for that attempt, up to 10 s, and returns `FAILED` if it doesn't
@@ -93,13 +141,16 @@ of the packet identifier that `publish` returned). `IosMqttClientManager`
 `NetworkConnectivity` on iOS is `IosNetworkConnectivity` over `NWPathMonitor`; `initShared` logs each change
 ("Pliuskis network: online" / "offline") to the unified log.
 
-Broker settings on iOS: plaintext MQTT on port 1883 to the LAN broker (no TLS, no certificate in the app). The host is
+Broker settings on iOS: the `MqttConnection` key of Info.plist (`MQTT_CONNECTION` of `Base.xcconfig`) picks the
+connection. Release (`awsIot`) connects to AWS IoT over Cognito, as above: the endpoint `AMAZON_IOT_ENDPOINT` on port
+443. Debug (`lan`) uses plaintext MQTT on port 1883 to the LAN broker (no TLS, no certificate in the app), unless it
+is launched with `-awsIotCheck YES` (`AwsIotCheck`, the dev stack's AWS IoT). The LAN host is
 `BROKER_HOST` of the active xcconfig, set per configuration in the gitignored `iosApp/Configuration/Secrets.xcconfig`
-(`BROKER_HOST[config=Debug]`, `BROKER_HOST[config=Release]`; template `Secrets.template.xcconfig`): `localhost` on the
-Simulator, the Mac's LAN IP (`ipconfig getifaddr en0`, the same value as `DEBUG_BROKER_HOST`) for a real iPhone or to
-check Release against the LAN broker. The build writes it into the `BrokerHost` key of Info.plist, and
-`BrokerConfiguration.settings(infoDictionary:clientId:)` (`iosApp`) reads it there; no source holds a host. A missing
-host is empty, so the connect fails and the device list shows its error screen. Info.plist also has
+(`BROKER_HOST[config=Debug]`; template `Secrets.template.xcconfig`): `localhost` on the Simulator, the Mac's LAN IP
+(`ipconfig getifaddr en0`, the same value as `DEBUG_BROKER_HOST`) for a real iPhone. The build writes it into the
+`BrokerHost` key of Info.plist, and `BrokerConfiguration.settings(infoDictionary:clientId:)` (`iosApp`) reads it
+there; no source holds a host or an endpoint. A missing
+host or endpoint is empty, so the connect fails and the device list shows its error screen. Info.plist also has
 `NSLocalNetworkUsageDescription` (no `NSBonjourServices`; there is no Bonjour). When the user denies Local Network
 access, the socket never reaches the broker: the transport reports a disconnect, or nothing at all and the 10 s wait
 ends, so `connect()` returns `FAILED` and the device list shows the error screen with retry; retry after allowing the
@@ -164,12 +215,20 @@ owner, which clears the ViewModel once, and the status subscription sends its UN
 - Reconnects: `core/domain/.../connect/Reconnectable.kt`, `ObserveReconnectsUseCase.kt`;
   `core/data/.../mqttclient/ReconnectListener.kt` (Android); `ControlViewModel` (status request per reconnect,
   `refresh()`); `DevicesViewModel.refresh()`; `iosApp/iosApp/ForegroundRefresh.swift` (`refreshOnForeground`)
-- Connect: `core/domain/.../connect/ConnectUseCase.kt`, `core/data/.../ConnectMqttSource.kt` (a rejected CONNACK throws)
+- Connect: `core/domain/.../connect/ConnectUseCase.kt`, `IotAccessDeniedException.kt`, `core/data/.../ConnectMqttSource.kt`
+  (a failed connect throws; a refused identity throws `IotAccessDeniedException`)
+- Release connection (AWS IoT over Cognito): `core/data/src/commonMain/.../aws/SigV4WebSocketUrl.kt`
+  (`signAwsIotWebSocketUrl`), `AwsIotCredentialsCache.kt`, `CognitoIdentityClient.kt`, `AwsIotSettings.kt`;
+  Android `core/data/src/androidMain/.../mqttclient/AwsIotMqttClientManager.kt`, `SignedWebSocketRelay.kt`
+  (`AwsIotWebSocketTarget`), `.../di/AndroidDataModule.kt`; iOS `iosApp/iosApp/AwsIotWebSocketUrlProvider.swift`,
+  `MqttWebSocketUrlProvider.swift`, `AwsIotCheck.swift`, `shared/src/iosMain/.../AwsIotConfiguration.kt`,
+  `SharedEntryPoint.kt` (`initSharedOverAwsIot`, `signedAwsIotWebSocketUrl`)
 - Data: `core/data/.../devices/SubscribeDeviceTopics.kt`, `core/data/.../mqttclient/HiveMqttClientManager.kt`, `MqttClientProducer.kt` (`createMqttClient`)
 - iOS client: `iosApp/iosApp/CocoaMqttTransport.swift`; `core/data/src/iosMain/.../mqttclient/MqttTransport.kt`,
   `IosMqttClientManager.kt`, `TopicFilter.kt`; `.../util/IosNetworkConnectivity.kt`, `NwPathMonitorPathSource.kt`;
   `.../di/IosDataModule.kt`; `shared/src/iosMain/.../SharedEntryPoint.kt` (`initShared`), `NetworkStatusLog.kt`
-- Broker settings: `app/.../broker/BrokerModule.kt` (debug or release `MqttSettings` from `BuildConfig`), `AssetKeystoreTlsSetup.kt`; `core/data/.../mqttclient/MqttSettings.kt`, `MqttTlsSetup.kt`
+- Broker settings: `app/.../broker/BrokerModule.kt` (debug or release `MqttSettings` and the release `AwsIotSettings`
+  from `BuildConfig`); `core/data/.../mqttclient/MqttSettings.kt` (`connectionTarget`), `MqttTlsSetup.kt`
 - Client ID: `core/data/.../clientid/ClientIdProvider.kt` (+ `ClientIdStore`, `SharedPreferencesClientIdStore`; iOS:
   `core/data/src/iosMain/.../clientid/UserDefaultsClientIdStore.kt`, `shared/src/iosMain/.../InstallClientId.kt`)
 - iOS device list: `iosApp/iosApp/DeviceListScreen.swift`, `LiveDeviceList.swift`, `DevicesNavigation.swift`
@@ -178,7 +237,8 @@ owner, which clears the ViewModel once, and the status subscription sends its UN
 - iOS control screen: `iosApp/iosApp/LiveControlScreen.swift`, `ControlScreen.swift`, `ControlStatusText.swift`;
   `shared/src/iosMain/.../SharedEntryPoint.kt` (`createControlViewModel`)
 - iOS broker settings: `iosApp/iosApp/BrokerConfiguration.swift`, `PliuskisApp.swift`; `iosApp/project.yml` (Info.plist
-  keys); `iosApp/Configuration/Secrets.template.xcconfig` (`BROKER_HOST`)
+  keys); `iosApp/Configuration/Base.xcconfig` (`MQTT_CONNECTION`), `Secrets.template.xcconfig` (`BROKER_HOST`, the
+  `COGNITO_*`, `AWS_REGION` and `AMAZON_IOT_ENDPOINT` values)
 - Firmware (`rsetkus/pico-pliuskis`): `main.py` (`mqtt_connect`, `connect_with_backoff`, ping in the main loop) and
   its `docs/features/discovery.md`
 
@@ -216,8 +276,18 @@ owner, which clears the ViewModel once, and the status subscription sends its UN
   (`mosquitto_pub -r -n -t devices/{id}/info`). Clear `availability` the same way.
 - **Unsubscribe on close.** `HiveMqttClientManager.subscribe` unsubscribes in `awaitClose`; otherwise every re-collect
   leaks a callback. Two collectors of the same topic filter at once would unsubscribe each other.
-- **AWS IoT Core** supports retained messages and Last Will, but the device policy needs `iot:RetainPublish`, and the
-  app policy needs `iot:Subscribe` on the `devices/+/…` topic filters plus `iot:Receive` on the matching topics.
-  Because the client ID differs per install, the app policy must also allow `iot:Connect` for any client ID and the
-  `application/{applicationId}/…` status topics for any `applicationId`.
+- **AWS IoT Core** (the Release builds, through Cognito; see [sign-in.md](sign-in.md) and
+  [The release connection](#the-release-connection-aws-iot-over-cognito)). The private repository
+  `rsetkus/pliuskis-backend` sets up the permissions with Terraform (its README and
+  `modules/cognito-iot/iot_permissions.tf`). A signed-in Cognito identity gets AWS IoT access only after the admin
+  attaches the app's IoT policy to it, and AWS IoT allows an action only when both that policy and the identity pool
+  role's IAM policy allow it. The app may then connect only with a client ID that starts with its own identity ID
+  (`{identityId}-{install suffix}`). It may subscribe to `devices/+/info`, `devices/+/availability` and its own reply
+  topic `application/{clientId}/+/status`, and publish to `devices/{id}/status` and `devices/{id}/command`. Neither
+  policy has `iot:RetainPublish`, so the app's publishes are never retained. AWS IoT refuses any other client ID, topic
+  filter or topic, and another client's reply topic.
+  Retained discovery works on Mosquitto (the Debug builds) but not on AWS IoT. AWS IoT Core sends a retained message
+  on subscribe only to a filter that matches its topic exactly, never to a wildcard filter such as `devices/+/info`. So
+  on AWS IoT the app sees a device only after the device publishes again while the app is subscribed, for example
+  when the device reconnects. Epic PLIUS-44 replaces this discovery with per-user topics and a devices API.
 - Every device is visible to every app; there is no per-user ownership yet.

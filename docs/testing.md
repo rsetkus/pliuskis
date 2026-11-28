@@ -192,6 +192,16 @@ below, and ktlint and detekt over `src/commonMain`, `src/androidMain`, `src/iosM
 - **Generated sources:** KSP writes the Kotest entry points to `build/generated/ksp`. The plugin keeps `build/` out
   of ktlint, so generated code isn't linted.
 
+### The release MQTT client on Android (fake AWS IoT)
+The Android tests of the release client (`Story2AndroidAwsIotClientTest`, `core/data/src/androidHostTest`) need no
+broker outside the test: `FakeAwsIotBroker` is a small MQTT 3.1.1 over WebSocket broker in the test JVM (Netty, with
+`netty-codec-mqtt`, a test dependency), listening on a free localhost port. It records each upgrade request's URI
+(the signed query) and each CONNECT's client ID, and plays AWS IoT's answers: accept, close after the CONNECT
+(an identity without access) or answer the upgrade with HTTP 403; `stop()` then `start()` is a broker restart. The
+production client connects to it through its relay in plain `ws://`. The identity pool is a Ktor `MockEngine`
+(`FakeCognitoIdentityPool`, `core/data/src/commonTest/.../aws/AwsIotTestFixtures.kt`), and a `FakeClock` sets the
+signing time of every URL.
+
 ### The `shared` module and Swift tests
 
 `shared` builds the iOS framework `Shared` and holds the Swift-facing API (`initShared`, the ViewModel factories) in
@@ -248,6 +258,10 @@ AGENTS.md § CI) runs no tests.
   nc -z localhost 1883 && echo "broker up"
   # afterwards: pkill -f pliuskis-mosquitto.conf
   ```
+- **WebSocket transport (`iosAppTests`):** `Story2WebSocketBrokerContractTests` drives `CocoaMqttTransport` over
+  MQTT over WebSocket against `FakeWebSocketMqttBroker`, a small MQTT 3.1.1 over WebSocket broker inside the test
+  process (Network.framework, a free localhost port), so it needs no broker outside the test. It records each
+  CONNECT's client ID; `restart()` closes every connection and listens again on the same port.
 - **UI (`iosAppUITests`):** XCUITest against the launched app. Find elements by accessibility identifier
   (`.accessibilityIdentifier(...)` in the app).
 - **UI test scenarios:** a screen test that needs a fixed state launches the app with `-uiTestScenario <name>`
@@ -260,7 +274,12 @@ AGENTS.md § CI) runs no tests.
   control screen that owns a Swift `Lifecycle_viewmodelViewModel` subclass through `IosViewModelStoreOwner`, so a
   test sees `onCleared` run on Back. Scenarios are in `iosApp/iosApp/UITestScenario.swift` inside `#if DEBUG`, so the Release
   build has none; a test that uses them skips itself in Release with `#if !DEBUG ... throw XCTSkip(...)`. Add a case
-  to `UITestScenario` for a new state.
+  to `UITestScenario` for a new state. Every scenario skips the session, so the device and control scenarios open
+  without sign-in. The `signIn*` scenarios show `SignInScreen` in a fixed `SignInState` and count the button taps
+  (`uiTestScenario.googleCount`, `uiTestScenario.appleCount`); `signedInLive` is the live device list with a fake
+  signed-in session (the launch test uses it). On Android, an app UI test gets a fake session by overriding
+  `Authenticator` and `TokenStore` in Koin (`app/src/androidTest/.../AppSignInFakes.kt`); see
+  `docs/features/sign-in.md`.
 - **Naming:** class `Story<N><Subject>Tests`, methods `testStory<N>_<description>`.
 - **Setup:** once per checkout, `cp iosApp/Configuration/Secrets.template.xcconfig iosApp/Configuration/Secrets.xcconfig`.
   Each build runs `./gradlew :shared:embedAndSignAppleFrameworkForXcode`, which needs JDK 17 (found with

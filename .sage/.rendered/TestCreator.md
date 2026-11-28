@@ -42,6 +42,7 @@ When a situation in your workflow matches one of these instructions, **read the 
 - Assert on OBSERVABLE output — returned HTML strings, file contents under dist/, stdout/stderr from the CLI, exit codes. Never assert on call counts or internal implementation details.
 - Every test must run production/application code and check its behaviour. Never write tests that read source, build or doc files (imports, plugin ids, versions, test-name lists, doc wording). A structural AC (e.g. 'no Android imports in commonMain', 'builds for iosArm64', 'doc updated') is proven by a Gradle command or by review and recorded in the story's implementation map, not by a test.
 - If an AC cannot be tested at your seam yet, write the test with TODO("reason") and a clear reason, then note it in your completion message so the Developer knows to flip TODO off when implementing.
+- Never write a test that only describes how to check something by hand (e.g. an XCTest or Kotest that skips itself with manual steps). This overrides the role file's 'stub test' rule for manual or device-only AC: write no test for them; their steps and evidence go in the story's implementation map.
 - Don't write tests for behavior outside the story's AC list. If you notice missing AC, escalate to User rather than inventing coverage.
 
 **Rules:**

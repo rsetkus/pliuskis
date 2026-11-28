@@ -35,6 +35,15 @@ targets:
     dependencies:
       - package: CocoaMQTT
         product: CocoaMQTT
+      # MQTT over WebSocket (AWS IoT's SigV4-signed wss://<endpoint>/mqtt), a separate product of the same package.
+      - package: CocoaMQTT
+        product: CocoaMQTTWebSocket
+    # Sign in with Apple: the native Apple sheet gives the fresh authorization code that account deletion revokes.
+    entitlements:
+      path: iosApp/iosApp.entitlements
+      properties:
+        com.apple.developer.applesignin:
+          - Default
     info:
       path: iosApp/Info.plist
       properties:
@@ -42,6 +51,23 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         BrokerHost: $(BROKER_HOST)
+        # lan (Debug) or awsIot (Release), from Base.xcconfig: which MQTT connection BrokerConfiguration builds.
+        MqttConnection: $(MQTT_CONNECTION)
+        # The Cognito managed login of this configuration's stack (dev for Debug, prod for Release), from
+        # Secrets.xcconfig. The shared framework reads these keys (signInSettingsFromInfoPlist).
+        CognitoUserPoolId: $(COGNITO_USER_POOL_ID)
+        CognitoAppClientId: $(COGNITO_APP_CLIENT_ID)
+        CognitoLoginDomain: $(COGNITO_LOGIN_DOMAIN)
+        CognitoRedirectUri: $(COGNITO_REDIRECT_URI)
+        # The AWS IoT connection over Cognito (identity pool, region, AWS IoT endpoint), from Secrets.xcconfig. The
+        # shared framework reads them (awsIotSettingsFromInfoPlist) when the app connects to AWS IoT: always in
+        # Release, and in Debug when launched with -awsIotCheck YES (AwsIotCheck).
+        CognitoIdentityPoolId: $(COGNITO_IDENTITY_POOL_ID)
+        AwsRegion: $(AWS_REGION)
+        AmazonIotEndpoint: $(AMAZON_IOT_ENDPOINT)
+        # The backend's Apple revoke API of this configuration's stack, from Secrets.xcconfig. The shared framework
+        # reads it (appleRevokeSettingsFromInfoPlist) when an Apple user deletes the account.
+        AppleRevokeApiUrl: $(APPLE_REVOKE_API_URL)
         # The app talks to the MQTT broker on the local network; iOS asks the user once with this text. No Bonjour,
         # so no NSBonjourServices.
         NSLocalNetworkUsageDescription: Pliuskis connects to the MQTT broker on your local network to find your plant devices, show their status and water them.

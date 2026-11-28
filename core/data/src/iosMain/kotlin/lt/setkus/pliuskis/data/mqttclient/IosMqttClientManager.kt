@@ -45,7 +45,16 @@ private const val RECONNECT_BUFFER = 8
  *   QoS 1 publish does on Android. It throws [MqttPublishException] at once when not connected or when the transport
  *   refuses the message, and later when the connection drops or no PUBACK comes within [publishAckTimeoutMillis].
  *
- * The broker settings come from [settings]; iOS connects in plaintext (`TlsMode.NONE`), so the TLS mode is not used.
+ * - **Refused.** When the broker answers but refuses the attempt ([MqttTransportListener.onConnectionRefused]: on AWS
+ *   IoT, an identity without an AWS IoT policy), the attempt ends with [MqttConnectionState.REFUSED], [onRefused]
+ *   runs and the transport is closed, so it makes no automatic reconnect: only the next [connect] tries again.
+ * - **Closed.** [closeConnection] (after a sign-out) closes the transport the same way.
+ *
+ * The broker settings come from [settings]; the transport decides plaintext TCP (the LAN broker) or a signed
+ * WebSocket (AWS IoT), so the TLS mode is not used here. The client ID of a connect attempt that [connect] starts comes
+ * from [clientIdForAttempt], which first gets ready what the attempt needs: [settings]' client ID by default; on AWS
+ * IoT, `<identity ID>-<install suffix>` after the credentials are fresh. When it gives none, the attempt fails without
+ * opening a socket. [getClientId] is the client ID of the last attempt (before the first one, [settings]' client ID).
  * The transport calls back on the main queue and the callers may be on any thread, so the state is guarded by a lock.
  */
 internal class IosMqttClientManager(
@@ -53,6 +62,8 @@ internal class IosMqttClientManager(
     private val settings: MqttSettings,
     private val pendingConnectionTimeoutMillis: Long = PENDING_CONNECTION_TIMEOUT_MILLIS,
     private val publishAckTimeoutMillis: Long = PUBLISH_ACK_TIMEOUT_MILLIS,
+    private val clientIdForAttempt: suspend () -> String? = { settings.clientId },
+    private val onRefused: () -> Unit = {},
 ) : IotManager {
 
     private enum class Link { DISCONNECTED, CONNECTING, CONNECTED }
@@ -65,6 +76,7 @@ internal class IosMqttClientManager(
     private val subscriptions = mutableListOf<Subscription>()
     private val pendingAcks = mutableMapOf<Int, CompletableDeferred<Unit>>()
     private var connectedBefore = false
+    private var clientId = settings.clientId
     private val reconnectEvents = MutableSharedFlow<Unit>(
         extraBufferCapacity = RECONNECT_BUFFER,
         onBufferOverflow = BufferOverflow.DROP_OLDEST,
@@ -75,15 +87,24 @@ internal class IosMqttClientManager(
     }
 
     override suspend fun connect(): MqttConnectionState {
-        val attempt = lock.locked { if (link == Link.CONNECTED) null else runningAttempt ?: startAttempt() }
-        return if (attempt == null) {
-            MqttConnectionState.CONNECTED
+        val connected = lock.locked { link == Link.CONNECTED }
+        val attemptClientId = if (connected) {
+            null
         } else {
-            withTimeoutOrNull(pendingConnectionTimeoutMillis) { attempt.await() } ?: MqttConnectionState.FAILED
+            withTimeoutOrNull(pendingConnectionTimeoutMillis) { clientIdForAttempt() }
+        }
+        val attempt = attemptClientId?.let { id ->
+            lock.locked { if (link == Link.CONNECTED) null else runningAttempt ?: startAttempt(id) }
+        }
+        return when {
+            attempt != null ->
+                withTimeoutOrNull(pendingConnectionTimeoutMillis) { attempt.await() } ?: MqttConnectionState.FAILED
+            connected || lock.locked { link == Link.CONNECTED } -> MqttConnectionState.CONNECTED
+            else -> MqttConnectionState.FAILED
         }
     }
 
-    override fun getClientId(): String = settings.clientId
+    override fun getClientId(): String = lock.locked { clientId }
 
     override suspend fun publishString(message: String, topic: String) {
         val ack = lock.locked { queuePublish(topic, message) }
@@ -100,10 +121,25 @@ internal class IosMqttClientManager(
             subscriptions += subscription
             if (link == Link.CONNECTED) transport.subscribe(topic)
         }
-        awaitClose { release(subscription) }
+        awaitClose {
+            lock.locked {
+                subscriptions -= subscription
+                val filterStillUsed = subscriptions.any { it.filter == subscription.filter }
+                if (!filterStillUsed && link == Link.CONNECTED) transport.unsubscribe(subscription.filter)
+            }
+        }
     }.buffer(Channel.UNLIMITED)
 
     override fun reconnects(): Flow<Unit> = reconnectEvents.asSharedFlow()
+
+    /**
+     * Closes the connection, or stops the running or scheduled attempt, for good: the transport makes no automatic
+     * reconnect until the next [connect]. Used when the user signs out, so nothing reconnects with the old identity.
+     */
+    fun closeConnection() = lock.locked {
+        finishAttempt(Link.DISCONNECTED, MqttConnectionState.FAILED)
+        transport.disconnect()
+    }
 
     /** Must hold [lock]. Hands the message to the transport and returns what completes on its PUBACK. */
     private fun queuePublish(topic: String, message: String): CompletableDeferred<Unit> {
@@ -116,9 +152,10 @@ internal class IosMqttClientManager(
     }
 
     /** Must hold [lock]. The listener may answer synchronously, so the attempt exists before the transport call. */
-    private fun startAttempt(): CompletableDeferred<MqttConnectionState> {
+    private fun startAttempt(attemptClientId: String): CompletableDeferred<MqttConnectionState> {
         val attempt = attemptInProgress()
-        transport.connect(settings.host, settings.port, settings.clientId)
+        clientId = attemptClientId
+        transport.connect(settings.host, settings.port, attemptClientId)
         return attempt
     }
 
@@ -137,12 +174,6 @@ internal class IosMqttClientManager(
         runningAttempt = null
     }
 
-    private fun release(subscription: Subscription) = lock.locked {
-        subscriptions -= subscription
-        val filterStillUsed = subscriptions.any { it.filter == subscription.filter }
-        if (!filterStillUsed && link == Link.CONNECTED) transport.unsubscribe(subscription.filter)
-    }
-
     private inner class TransportEvents : MqttTransportListener {
         override fun onConnecting() {
             lock.locked { attemptInProgress() }
@@ -157,6 +188,20 @@ internal class IosMqttClientManager(
 
         override fun onDisconnected() = lock.locked {
             finishAttempt(Link.DISCONNECTED, MqttConnectionState.FAILED)
+            failPublishes()
+        }
+
+        override fun onConnectionRefused() {
+            lock.locked {
+                finishAttempt(Link.DISCONNECTED, MqttConnectionState.REFUSED)
+                failPublishes()
+            }
+            onRefused()
+            transport.disconnect()
+        }
+
+        /** Must hold [lock]. */
+        private fun failPublishes() {
             pendingAcks.values.forEach { it.completeExceptionally(MqttPublishException("The connection was lost")) }
             pendingAcks.clear()
         }

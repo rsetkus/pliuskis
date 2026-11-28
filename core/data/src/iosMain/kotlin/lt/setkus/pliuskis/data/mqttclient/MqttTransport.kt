@@ -10,6 +10,9 @@ import kotlin.native.ObjCName
  * (connect de-duplication, the 10 s wait, re-subscribing after a CONNACK, topic filter matching, UTF-8) is Kotlin's.
  *
  * Every call returns at once and reports the outcome later through [listener].
+ *
+ * Over AWS IoT (`CocoaMqttTransport(webSocketUrlProvider:)`), every attempt, CocoaMQTT's automatic reconnects
+ * included, opens a newly signed WebSocket URL from the shared `signedAwsIotWebSocketUrl()`.
  */
 @OptIn(ExperimentalObjCName::class)
 @ObjCName("MqttTransport", exact = true)
@@ -17,8 +20,17 @@ interface MqttTransport {
     /** Receives the connection events and messages. The Kotlin client sets it once, when it is created. */
     var listener: MqttTransportListener?
 
-    /** Opens the connection: CONNECT with a clean session. Reports [MqttTransportListener.onConnecting] first. */
+    /**
+     * Opens the connection: CONNECT with a clean session. Reports [MqttTransportListener.onConnecting] first. Turns
+     * the automatic reconnect on again after a [disconnect].
+     */
     fun connect(host: String, port: Int, clientId: String)
+
+    /**
+     * Closes the connection (or stops the attempt) and turns the automatic reconnect off until the next [connect]:
+     * after AWS IoT refused the identity, or after a sign-out. Reports [MqttTransportListener.onDisconnected].
+     */
+    fun disconnect()
 
     /** Sends SUBSCRIBE for [topicFilter] with QoS 1. */
     fun subscribe(topicFilter: String)
@@ -46,8 +58,15 @@ interface MqttTransportListener {
     /** The broker accepted the connection (CONNACK with return code 0). */
     fun onConnected()
 
-    /** The connection is gone or could not be opened: refused CONNACK, socket error, network loss, broker restart. */
+    /** The connection is gone or could not be opened: socket error, network loss, broker restart. */
     fun onDisconnected()
+
+    /**
+     * The broker answered the attempt but refused it, before any accepted CONNACK: the WebSocket upgrade answered with
+     * an HTTP error (AWS IoT: 403), the connection closed after it opened and before the CONNACK (AWS IoT: an identity
+     * without an AWS IoT policy), or a CONNACK with a refusal code. Reported instead of [onDisconnected].
+     */
+    fun onConnectionRefused()
 
     /** A PUBLISH arrived on [topic]; [payload] holds its raw bytes. */
     fun onMessage(topic: String, payload: NSData)

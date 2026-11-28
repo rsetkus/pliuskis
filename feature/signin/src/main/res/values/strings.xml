@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sign_in_title">Welcome to Pliuškis</string>
+    <string name="sign_in_message">Sign in to see how your plants are doing and water them from anywhere.</string>
+    <string name="sign_in_google">Continue with Google</string>
+    <string name="sign_in_apple">Sign in with Apple</string>
+    <string name="sign_in_progress">Signing you in…</string>
+    <string name="sign_in_error_network">You\'re offline. Check your internet connection and try again.</string>
+    <string name="sign_in_error_failed">Couldn\'t sign you in. Please try again.</string>
+    <string name="account_menu">Account</string>
+    <string name="account_sign_out">Sign out</string>
+    <string name="account_delete">Delete account</string>
+    <string name="account_delete_title">Delete your account?</string>
+    <string name="account_delete_message">This deletes your Pliuškis account and signs you out. You can\'t undo it. Your devices keep working.</string>
+    <string name="account_delete_confirm">Delete</string>
+    <string name="account_delete_cancel">Cancel</string>
+    <string name="account_deleting">Deleting your account…</string>
+    <string name="account_delete_failed_title">Couldn\'t delete your account</string>
+    <string name="account_delete_failed_message">Check your internet connection and try again. You\'re still signed in.</string>
+    <string name="account_delete_retry">Try again</string>
+</resources>

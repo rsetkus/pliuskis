@@ -1,5 +1,6 @@
 package lt.setkus.pliuskis.core.designsystem.component
 
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -44,7 +45,7 @@ fun PliuskisTopAppBar(
 
 /**
  * Large top app bar for a top-level screen. Pass an `exitUntilCollapsed` [scrollBehavior] so the title collapses
- * into a small bar as the list scrolls.
+ * into a small bar as the list scrolls. [actions] are icon buttons at the end of the bar (none by default).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,9 +53,11 @@ fun PliuskisLargeTopAppBar(
     title: String,
     modifier: Modifier = Modifier,
     scrollBehavior: TopAppBarScrollBehavior? = null,
+    actions: @Composable RowScope.() -> Unit = {},
 ) {
     LargeTopAppBar(
         title = { AppBarTitle(title) },
+        actions = actions,
         scrollBehavior = scrollBehavior,
         modifier = modifier
     )

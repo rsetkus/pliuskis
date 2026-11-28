@@ -31,6 +31,9 @@ paparazzi = "1.3.2"
 androidxArchCoreTesting = "2.2.0"
 koin = "4.1.1"
 hiveMqClient = "1.3.3"
+# The Netty of hiveMqClient; only the fake AWS IoT broker of the core:data tests uses it directly (netty-codec-mqtt,
+# netty-codec-http).
+netty = "4.1.99.Final"
 kotlinxSerializationJson = "1.13.0"
 kotlinxDateTime = "0.8.0"
 arrow = "2.3.0.1"
@@ -38,6 +41,10 @@ ksp = "2.3.14"
 # SKIE hooks into the Kotlin/Native compiler, and each SKIE release supports only certain Kotlin versions. Upgrade
 # SKIE together with Kotlin (`kotlin` above).
 skie = "0.10.16"
+# Ktor: the HTTP client of the Cognito sign-in (core:data), with an engine per platform.
+ktor = "3.6.1"
+# 1.9 and later need compileSdk 36 (see COMPILE_SDK in build-logic).
+androidxBrowser = "1.8.0"
 
 [libraries]
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "androidxComposeBom" }
@@ -59,7 +66,16 @@ koin = { group = "io.insert-koin", name = "koin-android", version.ref = "koin" }
 koin-core = { group = "io.insert-koin", name = "koin-core", version.ref = "koin" }
 koin-compose = { group = "io.insert-koin", name = "koin-androidx-compose",  version.ref = "koin" }
 hiveMqClient = { group = "com.hivemq", name = "hivemq-mqtt-client", version.ref = "hiveMqClient" }
+# MQTT over WebSocket for HiveMQ (AWS IoT's SigV4-signed wss://<endpoint>/mqtt): adds Netty's HTTP codec.
+hiveMqClient-websocket = { group = "com.hivemq", name = "hivemq-mqtt-client-websocket", version.ref = "hiveMqClient" }
+netty-codec-mqtt = { group = "io.netty", name = "netty-codec-mqtt", version.ref = "netty" }
+netty-codec-http = { group = "io.netty", name = "netty-codec-http", version.ref = "netty" }
 arrowCore = { group = "io.arrow-kt", name = "arrow-core", version.ref = "arrow" }
+ktor-client-core = { group = "io.ktor", name = "ktor-client-core", version.ref = "ktor" }
+ktor-client-android = { group = "io.ktor", name = "ktor-client-android", version.ref = "ktor" }
+ktor-client-darwin = { group = "io.ktor", name = "ktor-client-darwin", version.ref = "ktor" }
+ktor-client-mock = { group = "io.ktor", name = "ktor-client-mock", version.ref = "ktor" }
+androidx-browser = { group = "androidx.browser", name = "browser", version.ref = "androidxBrowser" }
 
 # Compose libs
 androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }

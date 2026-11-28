@@ -235,17 +235,20 @@ final class RecordingTransportListener: NSObject, MqttTransportListener {
     private var _connecting = 0
     private var _connected = 0
     private var _disconnected = 0
+    private var _refused = 0
     private var _messages: [Message] = []
     private var _publishAcks: [Int32] = []
 
     var connectedCount: Int { lock.withLock { _connected } }
     var disconnectedCount: Int { lock.withLock { _disconnected } }
+    var refusedCount: Int { lock.withLock { _refused } }
     var messages: [Message] { lock.withLock { _messages } }
     var publishAcks: [Int32] { lock.withLock { _publishAcks } }
 
     func onConnecting() { lock.withLock { _connecting += 1 } }
     func onConnected() { lock.withLock { _connected += 1 } }
     func onDisconnected() { lock.withLock { _disconnected += 1 } }
+    func onConnectionRefused() { lock.withLock { _refused += 1 } }
     func onMessage(topic: String, payload: Data) {
         lock.withLock { _messages.append(Message(topic: topic, payload: payload)) }
     }

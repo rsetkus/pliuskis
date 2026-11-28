@@ -5,7 +5,9 @@ import SwiftUI
 
 /// Fixed screen states for the UI tests (`iosAppUITests`), chosen with the launch argument `-uiTestScenario <name>`.
 /// The scenario feeds `DeviceListScreen` and `ControlScreen`, inside the real `DevicesNavigation`, with Kotlin state
-/// objects instead of the live ViewModels, so a test sees exactly the state it names. Debug build only.
+/// objects instead of the live ViewModels, so a test sees exactly the state it names; the `signIn*` scenarios feed
+/// `SignInScreen` the same way. Every scenario skips the session: the device and control scenarios open without
+/// sign-in. Debug build only.
 enum UITestScenario: String {
     /// `Loading`, online.
     case devicesLoading
@@ -34,6 +36,16 @@ enum UITestScenario: String {
     /// List with basil (b1, online); its control screen starts `Loading`, and `uiTestScenario.nextControlState` moves
     /// it to the `controlStatus` state, then to the `controlError` state.
     case controlStateSequence
+    /// The sign-in screen in `SignInStateSignedOut`; the Google button counts its taps in `uiTestScenario.googleCount`,
+    /// Apple's button in `uiTestScenario.appleCount`.
+    case signInSignedOut
+    /// The sign-in screen in `SignInStateSigningIn(provider: GOOGLE)`.
+    case signInSigningIn
+    /// The sign-in screen in `SignInStateError(reason: FAILED)`.
+    case signInError
+    /// The live device list and control screens (the shared ViewModels and the real MQTT client), with a fake
+    /// signed-in session: no sign-in screen and no account menu.
+    case signedInLive
 
     /// The scenario named by `-uiTestScenario`, or nil for the live app. The launch argument lands in the argument
     /// domain of the standard UserDefaults.
@@ -60,6 +72,19 @@ enum UITestScenario: String {
                 Self.device("basil", "b1", online: true),
                 Self.device("sage", "s1", online: true),
             ])
+        case .signInSignedOut, .signInSigningIn, .signInError, .signedInLive:
+            // These scenarios show no fixed device list.
+            DevicesListScreenStateLoading.shared
+        }
+    }
+
+    /// The sign-in screen's state, or nil for the device and control scenarios.
+    var signInState: SignInState? {
+        switch self {
+        case .signInSignedOut: SignInStateSignedOut.shared
+        case .signInSigningIn: SignInStateSigningIn(provider: .google)
+        case .signInError: SignInStateError(reason: .failed)
+        default: nil
         }
     }
 
@@ -125,11 +150,57 @@ final class UITestScenarioRecorder {
     var waterCount = 0
     var controlClearedCount = 0
     var controlStep = 0
+    var googleCount = 0
+    var appleCount = 0
 }
 
-/// Shows a `UITestScenario` in the app's navigation, with test controls below it: the retry, water and cleared
-/// counts, the control state step (`controlStateSequence` only) and a button that brings the fake connectivity online.
+/// Shows a `UITestScenario`: the sign-in screen for the `signIn*` scenarios, the live devices for `signedInLive`, and
+/// otherwise the scenario in the app's navigation.
 struct UITestScenarioView: View {
+    let scenario: UITestScenario
+
+    var body: some View {
+        if let signInState = scenario.signInState {
+            UITestSignInScenarioView(state: signInState)
+        } else if scenario == .signedInLive {
+            LiveDevices(account: nil)
+        } else {
+            UITestDevicesScenarioView(scenario: scenario)
+        }
+    }
+}
+
+/// The sign-in screen in a fixed state, with its Google and Apple calls counted below it.
+private struct UITestSignInScenarioView: View {
+    let state: SignInState
+
+    @State private var recorder = UITestScenarioRecorder()
+
+    var body: some View {
+        SignInScreen(
+            state: state,
+            onGoogle: { recorder.googleCount += 1 },
+            onApple: { recorder.appleCount += 1 }
+        )
+        .safeAreaInset(edge: .bottom) {
+            HStack {
+                Text("\(recorder.googleCount)")
+                    .accessibilityIdentifier("uiTestScenario.googleCount")
+                Text("\(recorder.appleCount)")
+                    .accessibilityIdentifier("uiTestScenario.appleCount")
+                Spacer()
+            }
+            .font(.caption)
+            .padding(.horizontal)
+            .background(.bar)
+        }
+    }
+}
+
+/// Shows a device or control `UITestScenario` in the app's navigation, with test controls below it: the retry, water
+/// and cleared counts, the control state step (`controlStateSequence` only) and a button that brings the fake
+/// connectivity online.
+private struct UITestDevicesScenarioView: View {
     let scenario: UITestScenario
 
     @State private var recorder = UITestScenarioRecorder()

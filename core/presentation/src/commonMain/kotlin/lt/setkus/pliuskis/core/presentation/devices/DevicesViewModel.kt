@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import lt.setkus.pliuskis.core.connect.ConnectUseCase
+import lt.setkus.pliuskis.core.connect.IotAccessDeniedException
 import lt.setkus.pliuskis.core.devicelist.Device
 import lt.setkus.pliuskis.core.devicelist.ObserveDevicesUseCase
 import lt.setkus.pliuskis.core.presentation.devices.DevicesListScreenState.Error
@@ -31,6 +32,10 @@ private const val EMPTY_LIST_TIMEOUT_MILLIS = 3_000L
  * Owns device discovery: connects to the broker, then subscribes to the discovery topics. Both run
  * in [viewModelScope], so leaving the screen for longer than [STOP_MILLIS] cancels them. After a
  * failure, [retry] runs the whole attempt again.
+ *
+ * When the broker refuses the signed-in identity ([IotAccessDeniedException]: no AWS IoT access yet), the list is
+ * empty ("No devices yet" with "Search again"), not an error, and nothing retries on its own: only [retry] and
+ * [refresh] make one new attempt each.
  */
 class DevicesViewModel(
     private val connect: ConnectUseCase,
@@ -44,6 +49,9 @@ class DevicesViewModel(
     /** True while a connect call is running, so repeated retries can't start more connects. */
     private val connecting = MutableStateFlow(false)
 
+    /** True after the broker refused the signed-in identity, until the next attempt. */
+    private val noAccess = MutableStateFlow(false)
+
     val devices: StateFlow<DevicesListScreenState> = channelFlow {
         attempts.collectLatest {
             connectThenDiscover().collect { state -> send(state) }
@@ -55,13 +63,13 @@ class DevicesViewModel(
     )
 
     /**
-     * Brings the list up to date, for example when the app returns to the foreground. After a failure it runs
-     * connect-then-discover again ([retry]). Otherwise it connects only if needed: a connected client returns at once,
-     * and a running attempt is waited on, not repeated. The open discovery subscription survives the reconnect, and the
-     * broker replays the retained device state after it.
+     * Brings the list up to date, for example when the app returns to the foreground. After a failure, or after the
+     * broker refused the identity, it runs connect-then-discover again ([retry]). Otherwise it connects only if
+     * needed: a connected client returns at once, and a running attempt is waited on, not repeated. The open discovery
+     * subscription survives the reconnect, and the broker replays the retained device state after it.
      */
     fun refresh() {
-        if (devices.value is Error) {
+        if (devices.value is Error || noAccess.value) {
             retry()
         } else {
             viewModelScope.launch { connect(Unit).first() }
@@ -83,6 +91,7 @@ class DevicesViewModel(
     private fun connectThenDiscover(): Flow<DevicesListScreenState> = flow {
         emit(Loading)
         connecting.value = true
+        noAccess.value = false
         // The connect call suspends without blocking, so it runs on the caller's dispatcher. Discovery starts only
         // once it succeeds.
         val connection = try {
@@ -92,10 +101,17 @@ class DevicesViewModel(
         }
         emitAll(
             connection.fold(
-                ifLeft = { flowOf(Error(it)) },
+                ifLeft = ::failedConnection,
                 ifRight = { discoverDevices() }
             )
         )
+    }
+
+    /** A refusal of the identity is the empty list (no devices it may see); any other failure is the error screen. */
+    private fun failedConnection(error: Throwable): Flow<DevicesListScreenState> {
+        val refused = error is IotAccessDeniedException
+        noAccess.value = refused
+        return flowOf(if (refused) Success(emptyList()) else Error(error))
     }
 
     private fun discoverDevices(): Flow<DevicesListScreenState> =

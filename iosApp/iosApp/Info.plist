@@ -2,6 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>AmazonIotEndpoint</key>
+	<string>$(AMAZON_IOT_ENDPOINT)</string>
+	<key>AppleRevokeApiUrl</key>
+	<string>$(APPLE_REVOKE_API_URL)</string>
+	<key>AwsRegion</key>
+	<string>$(AWS_REGION)</string>
 	<key>BrokerHost</key>
 	<string>$(BROKER_HOST)</string>
 	<key>CFBundleDevelopmentRegion</key>
@@ -22,8 +28,20 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>CognitoAppClientId</key>
+	<string>$(COGNITO_APP_CLIENT_ID)</string>
+	<key>CognitoIdentityPoolId</key>
+	<string>$(COGNITO_IDENTITY_POOL_ID)</string>
+	<key>CognitoLoginDomain</key>
+	<string>$(COGNITO_LOGIN_DOMAIN)</string>
+	<key>CognitoRedirectUri</key>
+	<string>$(COGNITO_REDIRECT_URI)</string>
+	<key>CognitoUserPoolId</key>
+	<string>$(COGNITO_USER_POOL_ID)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>MqttConnection</key>
+	<string>$(MQTT_CONNECTION)</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Pliuskis connects to the MQTT broker on your local network to find your plant devices, show their status and water them.</string>
 	<key>UIApplicationSceneManifest</key>
